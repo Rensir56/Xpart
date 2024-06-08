@@ -2,33 +2,18 @@ module mmu (
     input wire clk,
     input wire rst,
 
-    // Virtual address input
+    // Virtual data address input
     input wire [63:0] vaddr,
     input wire        valid_vaddr,
     output reg        ready_vaddr,
 
-    // Physical address output
+    // Physical data address output
     output reg [63:0] paddr,
     output reg        valid_paddr,
     input wire        ready_paddr,
 
+
     // AXI-Lite interface for memory access
-    // Write address channel
-    output reg [63:0] awaddr,
-    output reg        awvalid,
-    input wire        awready,
-
-    // Write data channel
-    output reg [63:0] wdata,
-    output reg        wvalid,
-    input wire        wready,
-    output reg [3:0]  wstrb,
-
-    // Write response channel
-    input wire        bvalid,
-    output reg        bready,
-    input wire [1:0]  bresp,
-
     // Read address channel
     output reg [63:0] araddr,
     output reg        arvalid,
@@ -38,7 +23,10 @@ module mmu (
     input wire [63:0] rdata,
     input wire        rvalid,
     output reg        rready,
-    input wire [1:0]  rresp
+    input wire [1:0]  rresp,
+
+    // satp
+    input wire [63:0] satp
 );
 
     // Page  Table Entry (PTE) structure definition
@@ -48,9 +36,8 @@ module mmu (
         logic [9:0]  flags; // Permissions and other flags
     }pte_t;
 
-    // Page table base register (simplified for demo)
-    // who are you
-    reg [31:0] page_table_base = 32'h1000_0000;
+    // Page table base register
+    reg [63:0] page_table_base = {satp[43:0], 12'b0};
 
     // MMU state machine
     typedef enum reg [2:0] {
@@ -76,9 +63,9 @@ module mmu (
         state = IDLE;
         ready_vaddr = 1;
         valid_paddr = 0;
-        awvalid = 0;
-        wvalid = 0;
-        bready = 0;
+        // awvalid = 0;
+        // wvalid = 0;
+        // bready = 0;
         arvalid = 0;
         rready = 0;
     end
@@ -101,9 +88,9 @@ module mmu (
         state = IDLE;
         ready_vaddr = 1;
         valid_paddr = 0;
-        awvalid = 0;
-        wvalid = 0;
-        bready = 0;
+        // awvalid = 0;
+        // wvalid = 0;
+        // bready = 0;
         arvalid = 0;
         rready = 0;
         end else begin
@@ -141,6 +128,26 @@ module mmu (
                     end
                 end
 
+                TRANSLATE_L2: begin
+                    if (arvalid && arready) begin
+                        arvalid <= 0;
+                        rready <= 1;
+                    end
+                    if (rvalid && rready) begin
+                        rready <= 0;
+                        pte <= rdata;
+                        if (!check_permmsions(pte.flags, 0)) begin
+                            state <= IDLE;
+                            ready_vaddr <= 1;
+                        end else begin
+                            pte_address <= (pte.ppn << 12) + vaddr[20:12];
+                            araddr <= pte_address;
+                            arvalid <= 1;
+                            state <= TRANSLATE_L3; 
+                        end
+                    end
+                end
+
                 TRANSLATE_L3: begin
                     if (arvalid && arready) begin
                         arvalid <= 0;
@@ -148,12 +155,15 @@ module mmu (
                     end
                     if (rvalid && rready) begin
                         rready <= 0;
-                        // Read PTE from memory, demo
                         pte <= rdata;
-                        // Calculate physical address
-                        paddr <= {pte.ppn, vaddr[11:0]};
-                        valid_paddr <= 1;
-                        state <= ACCESS_MEMORY;
+                        if (!check_permmsions(pte.flags, 0)) begin
+                            state <= IDLE;
+                            ready_vaddr <= 1;
+                        end else begin
+                            paddr <= {pte.ppn, vaddr[11:0]};
+                            valid_paddr <= 1;
+                            state <= ACCESS_MEMORY;
+                        end
                     end
                 end
 
