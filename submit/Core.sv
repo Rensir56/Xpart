@@ -189,6 +189,9 @@ module Core (
 
     wire [63:0] WBpc;
 
+// satp
+    wire [63:0] satp;
+
     CSRModule csrmodule(
         .clk(clk),
         .rst(rst),
@@ -212,7 +215,9 @@ module Core (
 
         .cosim_interrupt(cosim_interrupt),
         .cosim_cause(cosim_cause),
-        .cosim_csr_info(cosim_csr_info)
+        .cosim_csr_info(cosim_csr_info),
+
+        .satp(satp)
     );
 
     ExceptStruct::ExceptPack except_ID='{except: 1'b0, epc:64'b0, ecause:64'b0, etval: 64'b0};
@@ -613,8 +618,8 @@ module Core (
         .rd_data(rd_data)
     );
     
-    assign pc = IFpc;
-    assign address = MEMalu_res;
+    assign pc; //= IFpc; // to be change to physical
+    assign address;// = MEMalu_res;
     assign we_mem = MEMwe_mem;
     assign wdata_mem = MEMmem_wdata;
     assign wmask_mem = mem_mask;
@@ -663,5 +668,32 @@ module Core (
 
     // assign cosim_br_taken={3'b0,npc_sel_exe};
     // assign cosim_npc=pc_4_if;
+
+
+    // Xpart mmu part
+    mmu i_mmu (
+        .clk(clk),
+        .rst(rst),
+        .vaddr(IFpc),
+        .paddr(pc),
+        .raddr(iraddr),
+        .rvalid(irvalid),
+        .rready(irready),
+        .rdata(irdata),
+        .rresp(irresp)
+    )
+
+    mmu m_mmu (
+        .clk(clk),
+        .rst(rst),
+        .vaddr(MEMalu_res),
+        .paddr(address),
+        .raddr(mraddr),
+        .rvalid(mrvalid),
+        .rready(mrready),
+        .rdata(mrdata),
+        .rresp(mrresp)
+    )
+
 
 endmodule
