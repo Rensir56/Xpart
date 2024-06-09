@@ -671,7 +671,7 @@ module Core (
 
 
     // Xpart mmu part
-    mmu i_mmu (
+    mmu immu (
         .clk(clk),
         .rst(rst),
         .vaddr(IFpc),
@@ -680,19 +680,21 @@ module Core (
         .rvalid(irvalid),
         .rready(irready),
         .rdata(irdata),
-        .rresp(irresp)
+        .rresp(irresp),
+        .satp(satp)
     )
 
-    mmu m_mmu (
+    mmu dmmu (
         .clk(clk),
         .rst(rst),
         .vaddr(MEMalu_res),
         .paddr(address),
-        .raddr(mraddr),
-        .rvalid(mrvalid),
-        .rready(mrready),
-        .rdata(mrdata),
-        .rresp(mrresp)
+        .raddr(draddr),
+        .rvalid(drvalid),
+        .rready(drready),
+        .rdata(drdata),
+        .rresp(drresp),
+        .satp(satp)
     )
 
 
