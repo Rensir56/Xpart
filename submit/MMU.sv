@@ -4,25 +4,26 @@ module mmu (
 
     // Virtual data address input
     input wire [63:0] vaddr,
-    input wire        valid_vaddr,
+    // input wire        valid_vaddr,
     output reg        ready_vaddr,
 
     // Physical data address output
     output reg [63:0] paddr,
     output reg        valid_paddr,
-    input wire        ready_paddr,
+    // input wire        ready_paddr,
 
 
     // AXI-Lite interface for memory access
     // Read address channel
-    output reg [63:0] araddr,
-    output reg        arvalid,
-    input wire        arready,
+    // output reg [63:0] araddr,
+    // output reg        arvalid,
+    // input wire        arready,
 
     // Read data channel
-    input wire [63:0] rdata,
+
     input wire        rvalid,
     output reg        rready,
+    input wire [63:0] rdata,
     input wire [1:0]  rresp,
 
     // satp
@@ -61,12 +62,12 @@ module mmu (
     // Initialize MMU state
     initial begin
         state = IDLE;
-        ready_vaddr = 1;
-        valid_paddr = 0;
+        // ready_vaddr = 1;
+        // valid_paddr = 0;
         // awvalid = 0;
         // wvalid = 0;
         // bready = 0;
-        arvalid = 0;
+        // arvalid = 0;
         rready = 0;
     end
 
@@ -86,12 +87,12 @@ module mmu (
     always @(posedge clk) begin
         if (rst == 0) begin
         state = IDLE;
-        ready_vaddr = 1;
+        // ready_vaddr = 1;
         valid_paddr = 0;
         // awvalid = 0;
         // wvalid = 0;
         // bready = 0;
-        arvalid = 0;
+        // arvalid = 0;
         rready = 0;
         end else begin
             case (state)
