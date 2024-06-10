@@ -2,7 +2,8 @@
 	.section .text.init
 	.globl _start
 _start:
-    la sp, stack_top
+   # la sp, stack_top
+   li sp, 0x80209000
     call setup_vm
     call relocate
 
