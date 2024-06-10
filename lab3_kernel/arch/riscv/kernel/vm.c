@@ -25,7 +25,7 @@ void setup_vm(void)
     // 低 30 bit 作为 页内偏移 这里注意到 30 = 9 + 9 + 12， 即我们只使用根页表， 根页表的每个 entry 都对应 1GB 的区域。
     early_pgtbl[index] = (((pa >> 30) & 0x3ffffff) << 28);
     // 3. Page Table Entry 的权限 V | R | W | X 位设置为 1
-    early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X;
+    early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
 
     // 映射至高地址 (PA + PV2VA_OFFSET == VA)
     // 1. 将 va 的 64bit 作为如下划分： | high bit | 9 bit | 30 bit |
@@ -35,7 +35,7 @@ void setup_vm(void)
     // 低 30 bit 作为 页内偏移 这里注意到 30 = 9 + 9 + 12， 即我们只使用根页表， 根页表的每个 entry 都对应 1GB 的区域。
     early_pgtbl[index] = (((pa >> 30) & 0x3ffffff) << 28);
     // 3. Page Table Entry 的权限 V | R | W | X 位设置为 1
-    early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X;
+    early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
 }
 
 extern char _stext[];
@@ -65,7 +65,7 @@ void create_mapping(uint64 *pgtbl, uint64 va, uint64 pa, uint64 sz, uint64 perm)
         cur_pte = *(cur_tbl + cur_vpn);
         if ((cur_pte & PTE_V) == 0) {
             uint64 new_page_phy = (uint64)kalloc() - PA2VA_OFFSET;
-            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V;
+            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V | PTE_A | PTE_D;
             *(cur_tbl + cur_vpn) = cur_pte;
         }
         // 第二级
@@ -74,13 +74,13 @@ void create_mapping(uint64 *pgtbl, uint64 va, uint64 pa, uint64 sz, uint64 perm)
         cur_pte = *(cur_tbl + cur_vpn);
         if ((cur_pte & PTE_V) == 0) {
             uint64 new_page_phy = (uint64)kalloc() - PA2VA_OFFSET;
-            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V;
+            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V | PTE_A | PTE_D;
             *(cur_tbl + cur_vpn) = cur_pte;
         }
         // 第三级
         cur_tbl = (uint64*)(((cur_pte >> 10) << 12) + PA2VA_OFFSET);
         cur_vpn = VPN0(va);
-        cur_pte = ((pa >> 12) << 10) | perm | PTE_V;
+        cur_pte = ((pa >> 12) << 10) | perm | PTE_V | PTE_A | PTE_D;
         *(cur_tbl + cur_vpn) = cur_pte;
 
         va += PGSIZE;
@@ -96,17 +96,17 @@ void setup_vm_final(void) {
     // mapping kernel text X|-|R|V
     uint64 va = VM_START + OPENSBI_SIZE;
     uint64 pa = PHY_START + OPENSBI_SIZE;
-    create_mapping(swapper_pg_dir, va, pa, _srodata - _stext, PTE_X | PTE_R | PTE_V);
+    create_mapping(swapper_pg_dir, va, pa, _srodata - _stext, PTE_X | PTE_R | PTE_V | PTE_A | PTE_D);
 
     // mapping kernel rodata -|-|R|V
     va += _srodata - _stext;
     pa += _srodata - _stext;
-    create_mapping(swapper_pg_dir, va, pa, _sdata - _srodata, PTE_R | PTE_V);
+    create_mapping(swapper_pg_dir, va, pa, _sdata - _srodata, PTE_R | PTE_V | PTE_A | PTE_D);
 
     // mapping other memory -|W|R|V
     va += _sdata - _srodata;
     pa += _sdata - _srodata;
-    create_mapping(swapper_pg_dir, va, pa, PHY_SIZE - (_sdata - _stext), PTE_W | PTE_R | PTE_V);
+    create_mapping(swapper_pg_dir, va, pa, PHY_SIZE - (_sdata - _stext), PTE_W | PTE_R | PTE_V | PTE_A | PTE_D);
   
     // set satp with swapper_pg_dir
     uint64 _satp = (((uint64)(swapper_pg_dir) - PA2VA_OFFSET) >> 12) | (8L << 60);
