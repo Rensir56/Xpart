@@ -8,6 +8,7 @@ module mmu (
     output wire       ren,
     input wire [63:0] rdata,
     input wire        mmu_stall,
+    input wire        mmu_signal,
     output wire       paddr_valid,
 
     // satp
@@ -50,6 +51,7 @@ module mmu (
     assign ren = ren_reg;
     assign paddr_valid = paddr_valid_reg | (satp == 64'b0);
     assign paddr = (satp == 64'b0) ? vaddr : paddr_reg;
+    assign addr = pte_address;
 
     // Initialize MMU state
     initial begin
@@ -79,7 +81,7 @@ module mmu (
             last_vaddr <= 64'b0;
             last_satp <= 64'b0;
         end else begin
-            if ((last_vaddr != vaddr && satp != 64'b0) || last_satp != satp) begin
+            if (((last_vaddr != vaddr && satp != 64'b0) || last_satp != satp) && mmu_signal) begin
                 start_mmu <= 1;
             end
             last_vaddr <= vaddr;
@@ -101,7 +103,7 @@ module mmu (
         end else begin
             case (state)
                 IDLE: begin
-                    if (start_mmu | (satp != 64'b0)) begin
+                    if (start_mmu & (satp != 64'b0)) begin
                         paddr_valid_reg <= 0;
                         // Calculate PTE , try for single level 
                         pte_address <= page_table_base + {55'b0 ,vaddr[38:30]};

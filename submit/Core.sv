@@ -632,10 +632,10 @@ module Core (
     
     //assign pc; //= IFpc; // to be change to physical
     //assign address;// = MEMalu_res;
-    assign we_mem = MEMwe_mem;
+    assign we_mem = MEMwe_mem & dpaddr_valid;
     assign wdata_mem = MEMmem_wdata;
     assign wmask_mem = mem_mask;
-    assign re_mem = MEMre_mem;
+    assign re_mem = MEMre_mem & dpaddr_valid;
     // ipaddr_valid
     assign if_request = (~IF_stall_exe | switch_mode) & ipaddr_valid;
 
@@ -699,6 +699,7 @@ module Core (
         .ren(iren),
         .rdata(irdata),
         .mmu_stall(immu_stall),
+        .mmu_signal((~IF_stall_exe | switch_mode)),
         .paddr_valid(ipaddr_valid),
         .satp(satp)
     );
@@ -712,6 +713,7 @@ module Core (
         .ren(dren),
         .rdata(drdata),
         .mmu_stall(dmmu_stall),
+        .mmu_signal(MEMwe_mem | MEMre_mem),
         .paddr_valid(dpaddr_valid),
         .satp(satp)
     );
