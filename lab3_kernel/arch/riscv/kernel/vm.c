@@ -19,16 +19,16 @@ void setup_vm(void)
 
     int index;
 
-    // // 等值映射 (PA == VA) 此处pa = va，所以将pa视为va，用pa计算index
-    // // 1. 将 va 的 64bit 作为如下划分： | high bit | 9 bit | 30 bit |
-    // // high bit 可以忽略
-    // // 中间9 bit 作为 early_pgtbl 的 index
-    // index = VPN2(pa);
-    // // 低 30 bit 作为 页内偏移 这里注意到 30 = 9 + 9 + 12， 即我们只使用根页表， 根页表的每个 entry 都对应 1GB 的区域。
-    // early_pgtbl[index] = (((pa >> 30) & 0x3ffffff) << 28);
-    // // 3. Page Table Entry 的权限 V | R | W | X 位设置为 1
-    // early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
-    // // early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X;
+    // 等值映射 (PA == VA) 此处pa = va，所以将pa视为va，用pa计算index
+    // 1. 将 va 的 64bit 作为如下划分： | high bit | 9 bit | 30 bit |
+    // high bit 可以忽略
+    // 中间9 bit 作为 early_pgtbl 的 index
+    index = VPN2(pa);
+    // 低 30 bit 作为 页内偏移 这里注意到 30 = 9 + 9 + 12， 即我们只使用根页表， 根页表的每个 entry 都对应 1GB 的区域。
+    early_pgtbl[index] = (((pa >> 30) & 0x3ffffff) << 28);
+    // 3. Page Table Entry 的权限 V | R | W | X 位设置为 1
+    early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X | PTE_A | PTE_D;
+    // early_pgtbl[index] = early_pgtbl[index] | PTE_V | PTE_R | PTE_W | PTE_X;
 
     // 映射至高地址 (PA + PV2VA_OFFSET == VA)
     // 1. 将 va 的 64bit 作为如下划分： | high bit | 9 bit | 30 bit |
