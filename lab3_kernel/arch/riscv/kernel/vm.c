@@ -65,7 +65,7 @@ void create_mapping(uint64 *pgtbl, uint64 va, uint64 pa, uint64 sz, uint64 perm)
         cur_pte = *(cur_tbl + cur_vpn);
         if ((cur_pte & PTE_V) == 0) {
             uint64 new_page_phy = (uint64)kalloc() - PA2VA_OFFSET;
-            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V | PTE_A | PTE_D;
+            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V;
             *(cur_tbl + cur_vpn) = cur_pte;
         }
         // 第二级
@@ -74,13 +74,13 @@ void create_mapping(uint64 *pgtbl, uint64 va, uint64 pa, uint64 sz, uint64 perm)
         cur_pte = *(cur_tbl + cur_vpn);
         if ((cur_pte & PTE_V) == 0) {
             uint64 new_page_phy = (uint64)kalloc() - PA2VA_OFFSET;
-            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V | PTE_A | PTE_D;
+            cur_pte = ((uint64)new_page_phy >> 12) << 10 | PTE_V;
             *(cur_tbl + cur_vpn) = cur_pte;
         }
         // 第三级
         cur_tbl = (uint64*)(((cur_pte >> 10) << 12) + PA2VA_OFFSET);
         cur_vpn = VPN0(va);
-        cur_pte = ((pa >> 12) << 10) | perm | PTE_V | PTE_A | PTE_D;
+        cur_pte = ((pa >> 12) << 10) | perm | PTE_V;
         *(cur_tbl + cur_vpn) = cur_pte;
 
         va += PGSIZE;
