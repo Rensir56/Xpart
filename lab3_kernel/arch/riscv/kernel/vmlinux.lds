@@ -69,5 +69,5 @@ SECTIONS
         *(.stack.entry)
 
         _estack = .;
-    } >ramv AT>ram
+    }
 }

@@ -11,8 +11,8 @@ _start:
     call task_init
   # ------------------
     # set stvec = _traps 
-    # la a0, _traps
-    # csrw stvec, a0
+    la a0, _traps
+    csrw stvec, a0
   # ------------------
     # set sie[STIE] = 1
     li a0, 1 << 5       #STIE在sie的右数第5位
@@ -41,10 +41,6 @@ relocate:
     add sp, sp, t0
     ######################
 
-    la a0, _ff
-    add a0, a0, t0
-    csrw stvec, a0
-
     # set satp with early_pgtbl
 
     ###################### 
@@ -56,17 +52,12 @@ relocate:
     or t0, t0, t1
     csrw satp, t0
     ######################
-    
-.align 2
-_ff:
+
     # flush tlb
     sfence.vma zero, zero
 
     # flush icache
     fence.i
-
-    la a0, _traps
-    csrw stvec, a0
 
     ret
 
@@ -81,5 +72,4 @@ stack_bottom:
 .globl stack_top 
 stack_top:
     # ------------------
-
 
