@@ -516,8 +516,8 @@ module Core (
 
 // paddr_valid
     Race_Control race_control(
-        .if_stall(if_stall | !ipaddr_valid),
-        .mem_stall(mem_stall | !dpaddr_valid),
+        .if_stall(if_stall | (!ipaddr_valid & (~IF_stall_exe | switch_mode))),
+        .mem_stall(mem_stall | (!dpaddr_valid & (MEMwe_mem | MEMre_mem))),
         .switch_mode(switch_mode),
         .isJ(isJ),
         .br_taken(br_taken),

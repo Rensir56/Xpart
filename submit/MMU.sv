@@ -39,6 +39,7 @@ module mmu (
     // Temproray storage for page table entries
     reg [63:0] pte_address;
     pte_t pte;
+    assign pte = rdata;
 
     // Permissions
     logic read_enable;
@@ -66,9 +67,17 @@ module mmu (
         input       is_write;
         begin
             if (is_write)
-            check_permmsions = flags[1];
+            check_permmsions = flags[2];
             else
-                check_permmsions = flags[0];
+                check_permmsions = flags[1];
+        end
+    endfunction
+
+    // Check page function
+    function check_page;
+        input [9:0] flags;
+        begin
+            check_page = !(flags[3] | flags[2] | flags[1]);
         end
     endfunction
 
@@ -104,9 +113,8 @@ module mmu (
             case (state)
                 IDLE: begin
                     if (start_mmu & (satp != 64'b0)) begin
-                        paddr_valid_reg <= 0;
-                        // Calculate PTE , try for single level 
-                        pte_address <= page_table_base + {55'b0 ,vaddr[38:30]};
+                        paddr_valid_reg <= 0; 
+                        pte_address <= page_table_base + {55'b0 ,vaddr[38:30] << 3};
                         ren_reg <= 1;
                         state <= TRANSLATE_L1;
                     end
@@ -114,15 +122,20 @@ module mmu (
 
                 TRANSLATE_L1: begin
                     if (!mmu_stall) begin
-                        pte <= rdata;
-                        if (!check_permmsions(pte.flags, 0)) begin
-                            // Handle permission error
-                            state <= IDLE;
-                            ren_reg <= 0;
-                            start_mmu <= 0;
+                        if (!check_page(pte.flags)) begin
+                            if (!check_permmsions(pte.flags, 0)) begin
+                                state <= IDLE;
+                                ren_reg <= 0;
+                                start_mmu <= 0;
+                            end else begin
+                                paddr_reg <= {8'b0, pte.ppn, 12'b0} + {34'b0, vaddr[29:0]};
+                                paddr_valid_reg <= 1;
+                                state <= IDLE;//ACCESS_MEMORY;
+                                start_mmu <= 0;
+                            end
                         end else begin
                             // Calculate L2 page table entry address
-                            pte_address <= {8'b0 , pte.ppn, 12'b0} + {55'b0, vaddr[29:21]};
+                            pte_address <= {8'b0 , pte.ppn, 12'b0} + {55'b0, vaddr[29:21] << 3};
                             state <= TRANSLATE_L2;
                         end
                     end
@@ -130,15 +143,20 @@ module mmu (
 
                 TRANSLATE_L2: begin
                         if (!mmu_stall) begin
-                        pte <= rdata;
-                        if (!check_permmsions(pte.flags, 0)) begin
-                            // Handle permission error
-                            state <= IDLE;
-                            ren_reg <= 0;
-                            start_mmu <= 0;
+                        if (!check_page(pte.flags)) begin
+                            if (!check_permmsions(pte.flags, 0)) begin
+                                state <= IDLE;
+                                ren_reg <= 0;
+                                start_mmu <= 0;
+                            end else begin
+                                paddr_reg <= {8'b0, pte.ppn, 12'b0} + {43'b0, vaddr[20:0]};
+                                paddr_valid_reg <= 1;
+                                state <= IDLE;//ACCESS_MEMORY;
+                                start_mmu <= 0;
+                            end
                         end else begin
                             // Calculate L3 page table entry address
-                            pte_address <= {8'b0, pte.ppn, 12'b0} + {55'b0, vaddr[20:12]};
+                            pte_address <= {8'b0, pte.ppn, 12'b0} + {55'b0, vaddr[20:12] << 3};
                             state <= TRANSLATE_L3;
                         end
                     end
@@ -146,7 +164,7 @@ module mmu (
 
                 TRANSLATE_L3: begin
                     if (!mmu_stall) begin
-                        pte <= rdata;
+                        // pte <= rdata;
                         if (!check_permmsions(pte.flags, 0)) begin
                             state <= IDLE;
                             ren_reg <= 0;
@@ -159,14 +177,6 @@ module mmu (
                         end
                     end
                 end
-
-                // ACCESS_MEMORY: begin
-                //     if (valid_paddr && ready_paddr) begin
-                //         valid_paddr <= 0;
-                //         ready_vaddr <= 1;
-                //         state <= IDLE;
-                //     end
-                // end
 
                 default: begin
                     state <= IDLE;
