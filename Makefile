@@ -91,7 +91,7 @@ VIVADO_SETUP		:=  call D:\vivado\Vivado\2019.2\settings64.bat
 
 CMD_PREFIX			:=	bash -c
 PATH_TRANS			:=	realpath
-DIR_PROJECT			?= $(DIR_BUILD)/project
+DIR_PROJECT			?= $(DIR_BUILD)/Xpart
 BOARD				?=	xc7a100tcsg324-1
 TOP_MODULE			?=	top 
 

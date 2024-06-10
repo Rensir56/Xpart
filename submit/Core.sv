@@ -22,6 +22,17 @@ module Core (
     output wire if_request,
     output wire switch_mode,
 
+    output wire [63:0] iaddress,
+    output wire        iren,
+    input  wire [63:0] irdata,
+    input  wire        immu_stall,
+
+    output wire [63:0] daddress,
+    output wire        dren,
+    input  wire [63:0] drdata,
+    input  wire        dmmu_stall,
+
+
     input TimerStruct::TimerPack time_out,
 
     output cosim_valid,
@@ -503,9 +514,10 @@ module Core (
     
     wire [31:0] WBinst;
 
+// paddr_valid
     Race_Control race_control(
-        .if_stall(if_stall),
-        .mem_stall(mem_stall),
+        .if_stall(if_stall | !ipaddr_valid),
+        .mem_stall(mem_stall | !dpaddr_valid),
         .switch_mode(switch_mode),
         .isJ(isJ),
         .br_taken(br_taken),
@@ -618,13 +630,14 @@ module Core (
         .rd_data(rd_data)
     );
     
-    assign pc; //= IFpc; // to be change to physical
-    assign address;// = MEMalu_res;
+    //assign pc; //= IFpc; // to be change to physical
+    //assign address;// = MEMalu_res;
     assign we_mem = MEMwe_mem;
     assign wdata_mem = MEMmem_wdata;
     assign wmask_mem = mem_mask;
     assign re_mem = MEMre_mem;
-    assign if_request = ~IF_stall_exe | switch_mode;
+    // ipaddr_valid
+    assign if_request = (~IF_stall_exe | switch_mode) & ipaddr_valid;
 
 
     assign cosim_valid = WBvalid&~cosim_interrupt;
@@ -671,31 +684,37 @@ module Core (
 
 
     // Xpart mmu part
+
+    wire        ipaddr_valid;
+    wire        dpaddr_valid;
+
+
+
     mmu immu (
         .clk(clk),
-        .rst(rst),
+        .rst(rstn),
         .vaddr(IFpc),
         .paddr(pc),
-        .raddr(iraddr),
-        .rvalid(irvalid),
-        .rready(irready),
+        .addr(iaddress),
+        .ren(iren),
         .rdata(irdata),
-        .rresp(irresp),
+        .mmu_stall(immu_stall),
+        .paddr_valid(ipaddr_valid),
         .satp(satp)
-    )
+    );
 
     mmu dmmu (
         .clk(clk),
-        .rst(rst),
+        .rst(rstn),
         .vaddr(MEMalu_res),
         .paddr(address),
-        .raddr(draddr),
-        .rvalid(drvalid),
-        .rready(drready),
+        .addr(daddress),
+        .ren(dren),
         .rdata(drdata),
-        .rresp(drresp),
+        .mmu_stall(dmmu_stall),
+        .paddr_valid(dpaddr_valid),
         .satp(satp)
-    )
+    );
 
 
 endmodule
