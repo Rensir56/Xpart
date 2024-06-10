@@ -53,6 +53,23 @@ module PipelineCPU (
         .rstn(rstn)
     );
 
+    // mmu
+    AXI_ift #(
+        .AXI_ADDR_WIDTH(64),
+        .AXI_DATA_WIDTH(64)    
+    ) immu_axi_ift (
+        .clk(clk),
+        .rstn(rstn)
+    );
+
+    AXI_ift #(
+        .AXI_ADDR_WIDTH(64),
+        .AXI_DATA_WIDTH(64)    
+    ) dmmu_axi_ift (
+        .clk(clk),
+        .rstn(rstn)
+    );
+
     AXI_ift #(
         .AXI_ADDR_WIDTH(64),
         .AXI_DATA_WIDTH(64)    
@@ -69,6 +86,8 @@ module PipelineCPU (
         .rstn(rstn)
     );
 
+
+
     TimerStruct::TimerPack time_out;
     Axi_lite_Core #(
         .C_M_AXI_ADDR_WIDTH(64),
@@ -77,6 +96,10 @@ module PipelineCPU (
         .if_ift(if_axi_ift.Master),
         .mem_ift(mem_axi_ift[0].Master),
         .mmio_ift(mmio_axi_ift[0].Master),
+        //mmu
+        .immu_ift(immu_axi_ift.Master),
+        .dmmu_ift(dmmu_axi_ift.Master),
+
         .time_out(time_out),
 
         .cosim_valid(cosim_valid),
@@ -101,7 +124,6 @@ module PipelineCPU (
         .cosim_interrupt(cosim_interrupt),
         .cosim_cause(cosim_cause)
     );
-// care!
     Axi_lite_Mem_Hub #(
         .AXI_ADDR_WIDTH(64),
         .AXI_DATA_WIDTH(64),
@@ -116,6 +138,10 @@ module PipelineCPU (
         .rstn(rstn),
         .master0(if_axi_ift.Slave),
         .master1(mem_axi_ift[0].Slave),
+        // .immu
+        .master2(immu_axi_ift.Slave),
+        // .dmmu
+        .master3(dmmu_axi_ift.Slave),
         .slave0(mem_axi_ift[1].Master),
         .slave1(mem_axi_ift[2].Master),
         .slave2(mem_axi_ift[3].Master)

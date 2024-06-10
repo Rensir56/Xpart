@@ -10,6 +10,11 @@ module Axi_lite_Core #
     AXI_ift.Master if_ift,
     AXI_ift.Master mem_ift,
     AXI_ift.Master mmio_ift,
+    //mmu
+    AXI_ift.Master immu_ift,
+    AXI_ift.Master dmmu_ift,
+
+
     input TimerStruct::TimerPack time_out,
 
     output wire cosim_valid,
@@ -69,6 +74,22 @@ module Axi_lite_Core #
         .if_stall(if_stall_final),
         .mem_stall(mem_stall),
 
+        // about mmu, demo
+        .iaddress(iaddress),
+        .iren(iren),
+        .iwen(iwen),
+        .irdata(irdata),
+        .iwdata(iwdata),
+        .immu_stall(immu_stall),
+
+        .daddress(daddress),
+        .dren(dren),
+        .dwen(dwen),
+        .drdata(drdata),
+        .dwdata(dwdata),        
+        .dmmu_stall(dmmu_stall),
+
+        //....
         .cosim_valid(cosim_valid),
         .cosim_pc(cosim_pc),
 	    .cosim_inst(cosim_inst),
@@ -122,6 +143,43 @@ module Axi_lite_Core #
         end
     end
     assign if_stall_final=if_stall|skip_if;
+
+    // immu_fsm
+    Mem_ift #(
+        .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
+    ) immu_info();
+    Core2Mem_FSM immu_fsm(
+        .clk(clk),
+        .rstn(rstn),
+        .address_cpu(iaddress),
+        .wen_cpu(1'b0),
+        .ren_cpu(iren),
+        .wdata_cpu(64'b0),
+        .wmask_cpu(8'b0),
+        .rdata_cpu(irdata),
+        .mem_stall(immu_stall),
+        .mem_ift(immu_info.Master)
+    )
+
+    // dmmu_fsm
+    Mem_ift #(
+        .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
+    ) dmmu_info();
+    Core2Mem_FSM dmmu_fsm(
+        .clk(clk),
+        .rstn(rstn),
+        .address_cpu(daddress),
+        .wen_cpu(1'b0),
+        .ren_cpu(dren),
+        .wdata_cpu(64'b0),
+        .wmask_cpu(8'b0),
+        .rdata_cpu(drdata),
+        .mem_stall(dmmu_stall),
+        .mem_ift(dmmu_info.Master)
+    )
+
 
     wire [63:0] rdata_cpu_from_mem;
     wire mem_stall_from_mem;
@@ -208,5 +266,29 @@ module Axi_lite_Core #
         .wresp_mem(),
         .rresp_mem()
     );
+
+
+    // immu
+        CoreAxi_lite #(
+        .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
+    ) immu_axi_lite(
+        .master_ift(immu_ift),
+        .mem_ift(immu_info.Slave),
+        .wresp_mem(),
+        .rresp_mem()
+    );
+
+    // dmmu
+        CoreAxi_lite #(
+        .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
+    ) dmmu_axi_lite(
+        .master_ift(dmmu_ift),
+        .mem_ift(dmmu_info.Slave),
+        .wresp_mem(),
+        .rresp_mem()
+    );
+
     
 endmodule

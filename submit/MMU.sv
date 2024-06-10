@@ -2,29 +2,13 @@ module mmu (
     input wire clk,
     input wire rst,
 
-    // Virtual data address input
     input wire [63:0] vaddr,
-    // input wire        valid_vaddr,
-    output reg        ready_vaddr,
-
-    // Physical data address output
-    output reg [63:0] paddr,
-    output reg        valid_paddr,
-    // input wire        ready_paddr,
-
-
-    // AXI-Lite interface for memory access
-    // Read address channel
-    // output reg [63:0] araddr,
-    // output reg        arvalid,
-    // input wire        arready,
-
-    // Read data channel
-
-    input wire        rvalid,
-    output reg        rready,
+    output wire [63:0] paddr,
+    output wire [63:0] addr,
+    output wire       ren,
     input wire [63:0] rdata,
-    input wire [1:0]  rresp,
+    input wire        mmu_stall,
+    output wire       paddr_valid,
 
     // satp
     input wire [63:0] satp
@@ -38,7 +22,7 @@ module mmu (
     }pte_t;
 
     // Page table base register
-    reg [63:0] page_table_base = {satp[43:0], 12'b0};
+    reg [63:0] page_table_base = {8'b0 ,satp[43:0], 12'b0};
 
     // MMU state machine
     typedef enum reg [2:0] {
@@ -59,16 +43,19 @@ module mmu (
     logic read_enable;
     logic write_enable;
 
+    reg   ren_reg;
+    reg   paddr_valid_reg;
+    reg  [63:0]  paddr_reg;
+
+    assign ren = ren_reg;
+    assign paddr_valid = paddr_valid_reg | (satp == 64'b0);
+    assign paddr = (satp == 64'b0) ? vaddr : paddr_reg;
+
     // Initialize MMU state
     initial begin
         state = IDLE;
-        // ready_vaddr = 1;
-        // valid_paddr = 0;
-        // awvalid = 0;
-        // wvalid = 0;
-        // bready = 0;
-        // arvalid = 0;
-        rready = 0;
+        paddr_valid_reg = 1'b0;
+        ren_reg = 1'b0;
     end
 
     // Permissions check function
@@ -83,98 +70,101 @@ module mmu (
         end
     endfunction
 
+    reg start_mmu;
+    reg [63:0] last_vaddr;
+    reg [63:0] last_satp;
+    always @(posedge clk) begin  //TODO
+        if (rst == 0) begin
+            start_mmu <= 0;
+            last_vaddr <= 64'b0;
+            last_satp <= 64'b0;
+        end else begin
+            if ((last_vaddr != vaddr && satp != 64'b0) || last_satp != satp) begin
+                start_mmu <= 1;
+            end
+            last_vaddr <= vaddr;
+            last_satp <= satp;
+        end
+    end
+
+
     // MMU state machine
     always @(posedge clk) begin
         if (rst == 0) begin
-        state = IDLE;
-        // ready_vaddr = 1;
-        valid_paddr = 0;
-        // awvalid = 0;
-        // wvalid = 0;
-        // bready = 0;
-        // arvalid = 0;
-        rready = 0;
+        state <= IDLE;
+        paddr_valid_reg <= 0;
+        ren_reg <= 0;
+        // end else if (flush)begin  TODO
+        //     state <= IDLE;
+        //     start_mmu <= 0;
+        //     ren_reg <= 0;
         end else begin
             case (state)
                 IDLE: begin
-                    if (valid_vaddr && ready_vaddr) begin
+                    if (start_mmu | (satp != 64'b0)) begin
+                        paddr_valid_reg <= 0;
                         // Calculate PTE , try for single level 
-                        pte_address <= page_table_base + vaddr[38:30];
-                        ready_vaddr <= 0;
-                        araddr <= pte_address;
-                        arvalid <= 1;
+                        pte_address <= page_table_base + {55'b0 ,vaddr[38:30]};
+                        ren_reg <= 1;
                         state <= TRANSLATE_L1;
                     end
                 end
 
                 TRANSLATE_L1: begin
-                    if (arvalid && arready) begin
-                        arvalid <= 0;
-                        rready  <= 1;
-                    end
-                    if (rvalid && rready) begin
-                        rready <= 0;
+                    if (!mmu_stall) begin
                         pte <= rdata;
                         if (!check_permmsions(pte.flags, 0)) begin
                             // Handle permission error
                             state <= IDLE;
-                            ready_vaddr <= 1;
+                            ren_reg <= 0;
+                            start_mmu <= 0;
                         end else begin
                             // Calculate L2 page table entry address
-                            pte_address <= (pte.ppn << 12) + vaddr[29:21];
-                            araddr <= pte_address;
-                            arvalid <= 1;
+                            pte_address <= {8'b0 , pte.ppn, 12'b0} + {55'b0, vaddr[29:21]};
                             state <= TRANSLATE_L2;
                         end
                     end
                 end
 
                 TRANSLATE_L2: begin
-                    if (arvalid && arready) begin
-                        arvalid <= 0;
-                        rready <= 1;
-                    end
-                    if (rvalid && rready) begin
-                        rready <= 0;
+                        if (!mmu_stall) begin
                         pte <= rdata;
                         if (!check_permmsions(pte.flags, 0)) begin
+                            // Handle permission error
                             state <= IDLE;
-                            ready_vaddr <= 1;
+                            ren_reg <= 0;
+                            start_mmu <= 0;
                         end else begin
-                            pte_address <= (pte.ppn << 12) + vaddr[20:12];
-                            araddr <= pte_address;
-                            arvalid <= 1;
-                            state <= TRANSLATE_L3; 
+                            // Calculate L3 page table entry address
+                            pte_address <= {8'b0, pte.ppn, 12'b0} + {55'b0, vaddr[20:12]};
+                            state <= TRANSLATE_L3;
                         end
                     end
                 end
 
                 TRANSLATE_L3: begin
-                    if (arvalid && arready) begin
-                        arvalid <= 0;
-                        rready <= 1;
-                    end
-                    if (rvalid && rready) begin
-                        rready <= 0;
+                    if (!mmu_stall) begin
                         pte <= rdata;
                         if (!check_permmsions(pte.flags, 0)) begin
                             state <= IDLE;
-                            ready_vaddr <= 1;
+                            ren_reg <= 0;
+                            start_mmu <= 0;
                         end else begin
-                            paddr <= {pte.ppn, vaddr[11:0]};
-                            valid_paddr <= 1;
-                            state <= ACCESS_MEMORY;
+                            paddr_reg <= {8'b0, pte.ppn, 12'b0} + {52'b0, vaddr[11:0]};
+                            paddr_valid_reg <= 1;
+                            state <= IDLE;//ACCESS_MEMORY;
+                            start_mmu <= 0;
                         end
                     end
                 end
 
-                ACCESS_MEMORY: begin
-                    if (valid_paddr && ready_paddr) begin
-                        valid_paddr <= 0;
-                        ready_vaddr <= 1;
-                        state <= IDLE;
-                    end
-                end
+                // ACCESS_MEMORY: begin
+                //     if (valid_paddr && ready_paddr) begin
+                //         valid_paddr <= 0;
+                //         ready_vaddr <= 1;
+                //         state <= IDLE;
+                //     end
+                // end
 
                 default: begin
                     state <= IDLE;
