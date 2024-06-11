@@ -10,6 +10,7 @@ module mmu (
     input wire        mmu_stall,
     input wire        mmu_signal,
     input wire        mmu_change,
+    input wire [1:0]  priv,
     output wire       paddr_valid,
 
     // satp
@@ -51,8 +52,8 @@ module mmu (
     reg  [63:0]  paddr_reg;
 
     assign ren = ren_reg;
-    assign paddr_valid = paddr_valid_reg | (satp == 64'b0);
-    assign paddr = (satp == 64'b0) ? vaddr : paddr_reg;
+    assign paddr_valid = paddr_valid_reg | (satp == 64'b0) | (priv == 2'b11);
+    assign paddr = (satp == 64'b0 | priv == 2'b11) ? vaddr : paddr_reg;
     assign addr = pte_address;
 
     // Initialize MMU state
@@ -89,10 +90,16 @@ module mmu (
             start_mmu <= 0;
             last_satp <= 64'b0;
         end else begin
-            if (((mmu_change && satp != 64'b0) || last_satp != satp) && mmu_signal) begin
+             if ((mmu_change || last_satp != satp) && satp != 64'b0 && mmu_signal) begin
                 start_mmu <= 1;
                 paddr_valid_reg <= 0; 
-            end
+             end else if (priv == 2'b11) begin
+                start_mmu <= 0;
+                state <= IDLE;
+                ren_reg <= 0;
+                // paddr_valid_reg <= 1;
+                // paddr_reg <= vaddr;
+            end 
             last_satp <= satp;
         end
     end

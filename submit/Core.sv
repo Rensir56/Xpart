@@ -707,6 +707,7 @@ module Core (
         .mmu_stall(immu_stall),
         .mmu_signal(1'b1),
         .mmu_change(~PCstall | IDEXflush),
+        .priv(priv),
         .paddr_valid(ipaddr_valid),
         .satp(satp)
     );
@@ -722,6 +723,7 @@ module Core (
         .mmu_stall(dmmu_stall),
         .mmu_signal(EXwe_mem | EXre_mem),
         .mmu_change(~EXMEMstall | IDEXflush),
+        .priv(priv),
         .paddr_valid(dpaddr_valid),
         .satp(satp)
     );
