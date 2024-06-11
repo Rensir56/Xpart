@@ -2,18 +2,21 @@
 	.section .text.init
 	.globl _start
 _start:
-   # la sp, stack_top
-   li sp, 0x80209000
+    # la sp, stack_top
+    li sp, 0x80209000
     call setup_vm
     call relocate
+
+# set stvec first
+    la a0, _traps
+    csrw stvec, a0
 
     call mm_init
     call setup_vm_final
     call task_init
   # ------------------
     # set stvec = _traps 
-    la a0, _traps
-    csrw stvec, a0
+
   # ------------------
     # set sie[STIE] = 1
     li a0, 1 << 5       #STIE在sie的右数第5位
