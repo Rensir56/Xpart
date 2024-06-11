@@ -57,6 +57,15 @@ module Axi_lite_Core #
     wire switch_mode;
     wire if_stall_final;
 
+    wire [63:0] iaddress;
+    wire        iren;
+    wire [63:0] irdata;
+    wire        immu_stall;
+    wire [63:0] daddress;
+    wire        dren;
+    wire [63:0] drdata;
+    wire        dmmu_stall;    
+
     Core core(
         .clk(clk),
         .rstn(rstn),
@@ -77,16 +86,16 @@ module Axi_lite_Core #
         // about mmu, demo
         .iaddress(iaddress),
         .iren(iren),
-        .iwen(iwen),
+        // .iwen(iwen),
         .irdata(irdata),
-        .iwdata(iwdata),
+        // .iwdata(iwdata),
         .immu_stall(immu_stall),
 
         .daddress(daddress),
         .dren(dren),
-        .dwen(dwen),
+        // .dwen(dwen),
         .drdata(drdata),
-        .dwdata(dwdata),        
+        // .dwdata(dwdata),        
         .dmmu_stall(dmmu_stall),
 
         //....
@@ -160,7 +169,7 @@ module Axi_lite_Core #
         .rdata_cpu(irdata),
         .mem_stall(immu_stall),
         .mem_ift(immu_info.Master)
-    )
+    );
 
     // dmmu_fsm
     Mem_ift #(
@@ -178,7 +187,7 @@ module Axi_lite_Core #
         .rdata_cpu(drdata),
         .mem_stall(dmmu_stall),
         .mem_ift(dmmu_info.Master)
-    )
+    );
 
 
     wire [63:0] rdata_cpu_from_mem;

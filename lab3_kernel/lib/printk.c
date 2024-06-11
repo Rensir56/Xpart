@@ -19,9 +19,9 @@ static int vprintfmt(void(*putch)(char), const char *fmt, va_list vl) {
                 case 'x': {
                     long num = longarg ? va_arg(vl, long) : va_arg(vl, int);
 
-                    int hexdigits = 2 * (longarg ? sizeof(long) : sizeof(int)) - 1;
+                    int hexdigits = int_mul(2 , (longarg ? sizeof(long) : sizeof(int)) - 1);
                     for(int halfbyte = hexdigits; halfbyte >= 0; halfbyte--) {
-                        int hex = (num >> (4*halfbyte)) & 0xF;
+                        int hex = (num >> (int_mul(4,halfbyte))) & 0xF;
                         char hexchar = (hex < 10 ? '0' + hex : 'a' + hex - 10);
                         putch(hexchar);
                         pos++;
@@ -39,8 +39,8 @@ static int vprintfmt(void(*putch)(char), const char *fmt, va_list vl) {
                     int bits = 0;
                     char decchar[25] = {'0', 0};
                     for (long tmp = num; tmp; bits++) {
-                        decchar[bits] = (tmp % 10) + '0';
-                        tmp /= 10;
+                        decchar[bits] = (int_mod(tmp , 10)) + '0';
+                        tmp = int_div(tmp,10);
                     }
 
                     for (int i = bits; i >= 0; i--) {
@@ -56,8 +56,8 @@ static int vprintfmt(void(*putch)(char), const char *fmt, va_list vl) {
                     int bits = 0;
                     char decchar[25] = {'0', 0};
                     for (long tmp = num; tmp; bits++) {
-                        decchar[bits] = (tmp % 10) + '0';
-                        tmp /= 10;
+                        decchar[bits] = (int_mod(tmp , 10)) + '0';
+                        tmp = int_div(tmp,10);
                     }
 
                     for (int i = bits; i >= 0; i--) {

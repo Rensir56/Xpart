@@ -64,17 +64,17 @@ module Axi_lite_Mem_Hub #(
     localparam MASTER2=3'b011;
     localparam MASTER3=3'b100;
 
-    wire [AXI_ADDR_WIDTH-1:0] waddr [2:0];
+    wire [AXI_ADDR_WIDTH-1:0] waddr [3:0];
     assign waddr[0]=master0.Mw.awaddr;
     assign waddr[1]=master1.Mw.awaddr;
     assign waddr[2]=master2.Mw.awaddr;
     assign waddr[3]=master3.Mw.awaddr;
-    wire [2:0] wrequest;
+    wire [3:0] wrequest;
     assign wrequest[0]=master0.Mw.awvalid;
     assign wrequest[1]=master1.Mw.awvalid;
     assign wrequest[2]=master2.Mw.awvalid; 
     assign wrequest[3]=master3.Mw.awvalid;   
-    wire [2:0] wismem [1:0];
+    wire [2:0] wismem [3:0];
     genvar i;
     generate
         for(i=0;i<=3;i=i+1)begin:wismem_set
@@ -84,7 +84,7 @@ module Axi_lite_Mem_Hub #(
         end
     endgenerate
     
-    reg [1:0] axi_wtask [2:0];
+    reg [2:0] axi_wtask [2:0];
     wire [2:0] wfinish;
     assign wfinish[0]=slave0.Sw.bvalid;
     assign wfinish[1]=slave1.Sw.bvalid;
@@ -223,17 +223,17 @@ module Axi_lite_Mem_Hub #(
 
     //------------------------------------------------
 
-    wire [AXI_ADDR_WIDTH-1:0] raddr [2:0];
+    wire [AXI_ADDR_WIDTH-1:0] raddr [3:0];
     assign raddr[0]=master0.Mr.araddr;
     assign raddr[1]=master1.Mr.araddr;
     assign raddr[2]=master2.Mr.araddr;
     assign raddr[3]=master3.Mr.araddr;
-    wire [2:0] rrequest;
+    wire [3:0] rrequest;
     assign rrequest[0]=master0.Mr.arvalid;
     assign rrequest[1]=master1.Mr.arvalid;
     assign rrequest[2]=master2.Mr.arvalid;
     assign rrequest[3]=master3.Mr.arvalid;
-    wire [3:0] rismem [1:0];
+    wire [2:0] rismem [3:0];
     generate
         for(i=0;i<=3;i=i+1)begin:rismem_set
             assign rismem[i][0]=(raddr[i]<MEM0_END)&rrequest[i];
@@ -242,7 +242,7 @@ module Axi_lite_Mem_Hub #(
         end
     endgenerate
     
-    reg [1:0] axi_rtask [2:0];
+    reg [2:0] axi_rtask [2:0];
     wire [2:0] rfinish;
     assign rfinish[0]=slave0.Sr.rvalid;
     assign rfinish[1]=slave1.Sr.rvalid;
@@ -272,7 +272,7 @@ module Axi_lite_Mem_Hub #(
                         MASTER0:
                         begin
                             if(rfinish[i]&rismem[3][i])
-                                axi_rtask[i]<=MASTER1;
+                                axi_rtask[i]<=MASTER3;
                             else if(rfinish[i])
                                 axi_rtask[i]<=IDLE;
                         end
