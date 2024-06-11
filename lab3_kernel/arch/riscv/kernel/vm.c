@@ -55,7 +55,6 @@ void create_mapping(uint64 *pgtbl, uint64 va, uint64 pa, uint64 sz, uint64 perm)
     创建多级页表的时候可以使用 kalloc() 来获取一页作为页表目录
     可以使用 V bit 来判断页表项是否存在
     */
-    printk("root: %lx, [%lx, %lx) -> [%lx, %lx), perm: %x\n", pgtbl, pa, pa+sz, va, va+sz, perm);
     uint64 va_end = va + sz;
     uint64 *cur_tbl, cur_vpn, cur_pte;
     while (va < va_end) {
