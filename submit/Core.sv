@@ -543,10 +543,8 @@ module Core (
         .rstn(rstn),
         .PCstall(PCstall),
         .rdata_mem(rdata_mem),
-        .to_delay_request(to_delay_request),
         .IF_stall(IF_stall_if),
-        .rdata_mem_delay(rdata_mem_delay),
-        .delay_request(delay_request)
+        .rdata_mem_delay(rdata_mem_delay)
     );
 
     wire [63:0] MEMmem_truncout;
@@ -640,7 +638,6 @@ module Core (
     assign re_mem = MEMre_mem & dpaddr_valid;
     // ipaddr_valid
     wire to_delay_request;
-    reg delay_request;
     assign to_delay_request = ~(mem_stall | (~dpaddr_valid & (MEMre_mem | MEMwe_mem)));
 
     assign if_request = ipaddr_valid & to_delay_request;//(~IF_stall_exe | switch_mode) & ipaddr_valid;

@@ -44,7 +44,8 @@ void task_init() {
     }
     /* YOUR CODE HERE */
 
-    printk("...proc_init done!\n");
+    //printk("...proc_init done!\n");
+    printk("p\n");
 }
 
 void dummy() {
