@@ -18,15 +18,15 @@ module Race_Control(
 
     wire data_race = 0;
     wire predict_jump = EXnpc_sel & (br_taken || isJ) | switch_mode;
-     // paddr_valid
+     
     assign PCstall = (if_stall | mem_stall)& ~switch_mode;
     assign IFIDstall = mem_stall | data_race;
-    assign IFIDflush = ~IFIDstall & (predict_jump|if_stall);
+    assign IFIDflush = ~IFIDstall & (predict_jump|if_stall) | switch_mode;
     assign IDEXstall = predict_jump & if_stall | mem_stall | data_race;
-    assign IDEXflush = ~IDEXstall & predict_jump;
+    assign IDEXflush = ~IDEXstall & predict_jump | switch_mode;
 
     assign EXMEMstall = mem_stall;
-    assign EXMEMflush = ~(EXMEMstall) & (data_race | predict_jump & if_stall);
+    assign EXMEMflush = ~(EXMEMstall) & (data_race | predict_jump & if_stall) | switch_mode;
 
     assign MEMWBstall = 0;
     assign MEMWBflush = mem_stall | switch_mode;

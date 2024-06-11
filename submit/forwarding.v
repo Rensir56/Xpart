@@ -4,10 +4,13 @@
 `define BRANCH 7'b1100011
 `define LUI 7'b0110111
 `define AUIPC 7'b0010111
+`define SW 7'b0100011
+`define LW 7'b0000011
 
 module Forwarding(
     input MEMwe_reg,
     input WBwe_reg,
+    input MEMre_mem,
     input [31:0] EXinst,
     input [4:0] MEMrd,
     input [4:0] WBrd,
@@ -25,6 +28,8 @@ module Forwarding(
     reg isJAL;
     reg isAUIPC;
     reg isLUI;
+    reg isSW;
+    reg isLW;
 
     always @*begin
         isR = (opcode == `MATHr);
@@ -33,6 +38,8 @@ module Forwarding(
         isJAL = (opcode == `JAL);
         isLUI = (opcode == `LUI);
         isAUIPC = (opcode == `AUIPC);
+        isSW = (opcode == `SW);
+        isLW = (opcode == `LW);
     end
 
 
@@ -40,7 +47,11 @@ module Forwarding(
         if (isJAL || isLUI)
             rs1_forwarding = 0;
         else if(EXrs1 == MEMrd && MEMrd != 0 && MEMwe_reg) begin
-            rs1_forwarding = 2'b01;
+            if (MEMre_mem) begin
+                rs1_forwarding = 2'b11;
+            end else begin
+                rs1_forwarding = 2'b01;
+            end
         end else if(EXrs1 == WBrd && WBrd != 0 && WBwe_reg) begin
             rs1_forwarding = 2'b10;
         end else begin
@@ -49,10 +60,15 @@ module Forwarding(
     end
     
     always @(*) begin
-        if (!(isR || isWR)) begin
+        if (isLW) begin
             rs2_forwarding = 2'b00;
-        end else if(EXrs2 == MEMrd && MEMrd != 0 && MEMwe_reg) begin
-            rs2_forwarding = 2'b01;
+        end 
+        else if(EXrs2 == MEMrd && MEMrd != 0 && MEMwe_reg) begin
+            if (MEMre_mem) begin
+                rs2_forwarding = 2'b11;
+            end else begin
+                rs2_forwarding = 2'b01;
+            end
         end else if(EXrs2 == WBrd && WBrd != 0 && WBwe_reg) begin
             rs2_forwarding = 2'b10;
         end else begin

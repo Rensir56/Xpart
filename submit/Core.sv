@@ -32,7 +32,6 @@ module Core (
     input  wire [63:0] drdata,
     input  wire        dmmu_stall,
 
-
     input TimerStruct::TimerPack time_out,
 
     output cosim_valid,
@@ -77,47 +76,21 @@ module Core (
     wire MEMWBstall;
     wire MEMWBflush;
 
-    wire [63:0] pc_target_if;
-    wire jump_if;
-
     wire isJ;
     assign isJ = (EXinst[6:0] == 7'b1100111) || (EXinst[6:0] == 7'b1101111);
+    wire jump_exe = EXnpc_sel & (br_taken || isJ);
 
-    BranchPrediction branchprediction(
-        .clk(clk),
-        .rst(~rstn),
-        .pc_if(IFpc),
-        .jump_if(jump_if),
-        .pc_target_if(pc_target_if),
-        .pc_exe(EXpc),
-        .pc_target_exe(EXalu_res),
-        .jump_exe(EXnpc_sel && (br_taken || isJ)),
-        .is_jump_exe(EXnpc_sel)
-    );
-
-    wire STALL;
-    wire PCSTALL;
-    wire valid;
     wire IFvalid;
-    wire st;
-    wire va;
 
-    assign st = STALL;
-    assign va = valid;
-
-    assign PCSTALL = STALL || PCstall;
-    assign IFvalid = valid && ~if_stall;
+    assign IFvalid = ~if_stall;
     
     PC pcset(
         .clk(clk),
         .rstn(rstn),
-        .st(st),
-        .va(va),
-        .PCstall(PCSTALL),
+        .PCstall(PCstall),
+        .jump_exe(jump_exe),
         .npc(IFnpc),
-        .pc(IFpc),
-        .STALL(STALL),
-        .valid(valid)
+        .pc(IFpc)
     );
     
     wire EXnpc_sel;
@@ -128,9 +101,7 @@ module Core (
 
 
     NPC npcset(
-        .npc_sel(EXnpc_sel),
-        .br_taken(br_taken),
-        .EXinst(EXinst),
+        .jump_exe(jump_exe),
         .alu_out(EXalu_res),
         .IFpc(IFpc),
         .switch_mode(switch_mode),
@@ -199,8 +170,6 @@ module Core (
     assign csr_addr_ID = IDinst[31:20];
 
     wire [63:0] WBpc;
-
-// satp
     wire [63:0] satp;
 
     CSRModule csrmodule(
@@ -329,8 +298,6 @@ module Core (
         .IDnpc(IDnpc),
         .IDrd(IDinst[11:7]),
         .IDimm(IDimm),
-        .IDrs1(IDrs1),
-        .IDrs2(IDrs2),
         .IDinst(IDinst),
         .IDnpc_sel(IDnpc_sel),
         .IDwe_reg(IDwe_reg),
@@ -363,10 +330,25 @@ module Core (
         .EXpc(EXpc),
         .EXnpc(EXnpc),
         .EXrd(EXrd),
-        .EXrs1(EXrs1),
-        .EXrs2(EXrs2),
+        // .EXrs1(EXrs1),
+        // .EXrs2(EXrs2),
         .EXimm(EXimm),
         .EXinst(EXinst)
+    );
+
+    IDrsUpdate idrsupdate(
+        .clk(clk),
+        .rstn(rstn),
+        .IDEXstall(IDEXstall),
+        .IDEXflush(IDEXflush),
+        .IDrs1(IDrs1),
+        .IDrs2(IDrs2),
+        .rs1_forwarding(rs1_forwarding),
+        .rs2_forwarding(rs2_forwarding),
+        .we_reg(WBwe_reg),
+        .rd_data(rd_data),
+        .EXrs1(EXrs1),
+        .EXrs2(EXrs2)
     );
 
     wire [1:0] rs1_forwarding;
@@ -377,6 +359,7 @@ module Core (
     Forwarding forwarding(
         .MEMwe_reg(MEMwe_reg),
         .WBwe_reg(WBwe_reg),
+        .MEMre_mem(MEMre_mem),
         .EXinst(EXinst),
         .MEMrd(MEMrd),
         .WBrd(WBrd),
@@ -392,6 +375,7 @@ module Core (
         .rs1_forwarding(rs1_forwarding),
         .rs2_forwarding(rs2_forwarding),
         .MEMalu_res(MEMalu_res),
+        .rdata_mem(MEMmem_truncout),
         .rd_data(rd_data),
         .bralu_op(EXbralu_op),
         .br_taken(br_taken)
@@ -399,8 +383,8 @@ module Core (
 
     wire [63:0] alu_a;
     wire [63:0] alu_b;
-    wire isBRANCH = EXinst[6:0] == 7'b1100011;
-    wire isLUI = EXinst[6:0] == 7'b0110111;
+
+    wire [63:0] EXrs2_final;
 
     ALU_Sel sel(
         .alu_asel(EXalu_asel),
@@ -408,15 +392,16 @@ module Core (
         .rs1_forwarding(rs1_forwarding),
         .rs2_forwarding(rs2_forwarding),
         .MEMalu_res(MEMalu_res),
+        .rdata_mem(MEMmem_truncout),
         .rd_data(rd_data),
         .rs1(EXrs1),
         .pc(EXpc),
         .rs2(EXrs2),
         .imm(EXimm),
-        .isBRANCH(isBRANCH),
-        .isLUI(isLUI),
+        .EXinst(EXinst),
         .A(alu_a),
-        .B(alu_b)
+        .B(alu_b),
+        .EXrs2_final(EXrs2_final)
     );
 
     ALU alu(
@@ -479,7 +464,7 @@ module Core (
         .EXmemdata_width(EXmemdata_width),
         .EXrd(EXrd),
         .EXrs1(EXrs1),
-        .EXrs2(EXrs2),
+        .EXrs2(EXrs2_final),
         .EXalu_res(EXalu_res),
         .EXinst(EXinst),
         .csr_addr_MEM(csr_addr_MEM),
@@ -514,8 +499,7 @@ module Core (
     
     wire [31:0] WBinst;
 
-// paddr_valid
-    Race_Control race_control(
+   Race_Control race_control(
         .if_stall(if_stall | (!ipaddr_valid)), //& (~IF_stall_exe | switch_mode))),
         .mem_stall(mem_stall | (!dpaddr_valid & (MEMwe_mem | MEMre_mem))),
         .switch_mode(switch_mode),
@@ -548,20 +532,11 @@ module Core (
     );
 
     wire [63:0] MEMmem_truncout;
-    wire [63:0] rdata_mem_reg;
-    wire is_mmio;
-
-    assign is_mmio=(`MTIME_BASE==MEMalu_res)|
-        (`MTIMECMP_BASE==MEMalu_res)|
-        (`DISP_BASE==MEMalu_res)|
-        ((`UART_BASE==MEMalu_res)&((`UART_BASE+`UART_LEN)==MEMalu_res));
-
-    assign rdata_mem_reg = is_mmio? rdata_mem_delay:rdata_mem;
 
     Data_Trunc datatrunc(
         .alu_res(MEMalu_res),
         .memdata_width(MEMmemdata_width),
-        .rdata(rdata_mem_reg),
+        .rdata(rdata_mem),
         .shift(MEMalu_res[2:0]),
         .rd_data(MEMmem_truncout)
     );
@@ -630,21 +605,19 @@ module Core (
         .rd_data(rd_data)
     );
     
-    //assign pc; //= IFpc; // to be change to physical
-    //assign address;// = MEMalu_res;
-    assign we_mem = MEMwe_mem & dpaddr_valid;
+    // assign pc = IFpc;
+    // assign address = MEMalu_res;
+    assign we_mem = MEMwe_mem;
     assign wdata_mem = MEMmem_wdata;
     assign wmask_mem = mem_mask;
-    assign re_mem = MEMre_mem & dpaddr_valid;
+    assign re_mem = MEMre_mem;
     // ipaddr_valid
     wire to_delay_request;
     assign to_delay_request = ~(mem_stall | (~dpaddr_valid & (MEMre_mem | MEMwe_mem)));
-
-    assign if_request = ipaddr_valid & to_delay_request;//(~IF_stall_exe | switch_mode) & ipaddr_valid;
+    assign if_request = ipaddr_valid & to_delay_request;
 
 
     assign cosim_valid = WBvalid&~cosim_interrupt;
-    // assign cosim_valid = WBvalid;
     assign cosim_pc = WBpc;
     assign cosim_inst = WBinst;
     assign cosim_rs1_id= {3'b0, WBinst[19:15]};
@@ -661,30 +634,6 @@ module Core (
     assign cosim_rd_data = rd_data;
     assign cosim_br_taken ={3'b0,WBbr_taken};
     assign cosim_npc = WBnpc;
-
-    ////////////////////////////////////////////////
-
-    // assign cosim_valid=valid_wb&~cosim_interrupt;
-    // assign cosim_pc=pc_wb;      
-    // assign cosim_inst=inst_wb;
-    // assign cosim_rd_we={3'b0,we_reg_wb};
-    // assign cosim_rd_id={3'b0,rd_wb}; 
-    // assign cosim_rd_data=wb_val_wb;  
-
-    // assign cosim_rs1_id={3'b0,rs1_exe};
-    // assign cosim_rs1_data=read_data_1_new_exe;
-    // assign cosim_rs2_id={3'b0,rs2_exe};
-    // assign cosim_rs2_data=read_data_2_new_exe;
-    // assign cosim_alu=alu_res_exe;
-
-    // assign cosim_mem_addr=address;
-    // assign cosim_mem_we={3'b0,we_mem};
-    // assign cosim_mem_wdata=data_package;
-    // assign cosim_mem_rdata=data_trunc;
-
-    // assign cosim_br_taken={3'b0,npc_sel_exe};
-    // assign cosim_npc=pc_4_if;
-
 
     // Xpart mmu part
 
@@ -724,6 +673,5 @@ module Core (
         .paddr_valid(dpaddr_valid),
         .satp(satp)
     );
-
-
+    
 endmodule

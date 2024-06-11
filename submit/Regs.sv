@@ -22,7 +22,8 @@ module Regs (
   assign read_data_1 = (read_addr_1==5'b0)?64'b0:
                        (read_addr_1 == write_addr && we)? write_data:
                        (isi==0)? register[read_addr_1]:{59'b0, read_addr_1}; // read
-  assign read_data_2 = (read_addr_2==5'b0)?64'b0:register[read_addr_2]; // read
+  assign read_data_2 = (read_addr_2==5'b0)?64'b0:
+                       (read_addr_2 == write_addr && we)? write_data: register[read_addr_2]; // read
 
   always @(posedge clk or posedge rst) begin
       if (rst == 1) begin

@@ -13,8 +13,8 @@ module IDEX(
     input [63:0] IDnpc,
     input [4:0] IDrd,
     input [63:0] IDimm,
-    input [63:0] IDrs1,
-    input [63:0] IDrs2,
+    // input [63:0] IDrs1,
+    // input [63:0] IDrs2,
     input [31:0] IDinst,
     input IDnpc_sel,
     input IDwe_reg,
@@ -47,8 +47,6 @@ module IDEX(
     output reg [63:0] EXpc,
     output reg [63:0] EXnpc,
     output reg [4:0] EXrd,
-    output reg [63:0] EXrs1,
-    output reg [63:0] EXrs2,
     output reg [63:0] EXimm,
     output reg [31:0] EXinst
 );   
@@ -72,8 +70,6 @@ module IDEX(
             EXpc <= 0;
             EXnpc <= 0;
             EXrd <= 0;
-            EXrs1 <= 0;
-            EXrs2 <= 0;
             EXimm <= 0;
             EXinst <= 0;
             EXre_mem <= 0;
@@ -98,8 +94,6 @@ module IDEX(
             EXpc <= IDpc;
             EXnpc <= IDnpc;
             EXrd <= IDrd;
-            EXrs1 <= IDrs1;
-            EXrs2 <= IDrs2;
             EXimm <= IDimm;
             EXinst <= IDinst;
             IF_stall_exe <= IF_stall_id;

@@ -1,14 +1,14 @@
 interface DDR_ift;
 
-    logic [63:0] raddr_mem;
-    logic [63:0] waddr_mem;
-    logic [63:0] wdata_mem;
-    logic [63:0] rdata_mem;
-    logic rvalid_mem;
-    logic wvalid_mem;
-    logic wen_mem;
-    logic ren_mem;
-    logic [7:0] wmask_mem;
+    logic [ 63:0] raddr_mem;
+    logic [ 63:0] waddr_mem;
+    logic [127:0] wdata_mem;
+    logic [127:0] rdata_mem;
+    logic         rvalid_mem;
+    logic         wvalid_mem;
+    logic         wen_mem;
+    logic         ren_mem;
+    logic [ 15:0] wmask_mem;
 
     modport Master(
         output waddr_mem,
