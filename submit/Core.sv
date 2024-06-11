@@ -516,7 +516,7 @@ module Core (
 
 // paddr_valid
     Race_Control race_control(
-        .if_stall(if_stall | (!ipaddr_valid & (~IF_stall_exe | switch_mode))),
+        .if_stall(if_stall | (!ipaddr_valid)), //& (~IF_stall_exe | switch_mode))),
         .mem_stall(mem_stall | (!dpaddr_valid & (MEMwe_mem | MEMre_mem))),
         .switch_mode(switch_mode),
         .isJ(isJ),
@@ -543,8 +543,10 @@ module Core (
         .rstn(rstn),
         .PCstall(PCstall),
         .rdata_mem(rdata_mem),
+        .to_delay_request(to_delay_request),
         .IF_stall(IF_stall_if),
-        .rdata_mem_delay(rdata_mem_delay)
+        .rdata_mem_delay(rdata_mem_delay),
+        .delay_request(delay_request)
     );
 
     wire [63:0] MEMmem_truncout;
@@ -637,7 +639,11 @@ module Core (
     assign wmask_mem = mem_mask;
     assign re_mem = MEMre_mem & dpaddr_valid;
     // ipaddr_valid
-    assign if_request = (~IF_stall_exe | switch_mode) & ipaddr_valid;
+    wire to_delay_request;
+    reg delay_request;
+    assign to_delay_request = ~(mem_stall | (~dpaddr_valid & (MEMre_mem | MEMwe_mem)));
+
+    assign if_request = ipaddr_valid & to_delay_request;//(~IF_stall_exe | switch_mode) & ipaddr_valid;
 
 
     assign cosim_valid = WBvalid&~cosim_interrupt;
@@ -699,7 +705,9 @@ module Core (
         .ren(iren),
         .rdata(irdata),
         .mmu_stall(immu_stall),
-        .mmu_signal((~IF_stall_exe | switch_mode)),
+        .mmu_signal(1'b1),
+        .mmu_change(~PCstall | IDEXflush),
+        .priv(priv),
         .paddr_valid(ipaddr_valid),
         .satp(satp)
     );
@@ -713,7 +721,9 @@ module Core (
         .ren(dren),
         .rdata(drdata),
         .mmu_stall(dmmu_stall),
-        .mmu_signal(MEMwe_mem | MEMre_mem),
+        .mmu_signal(EXwe_mem | EXre_mem),
+        .mmu_change(~EXMEMstall | IDEXflush),
+        .priv(priv),
         .paddr_valid(dpaddr_valid),
         .satp(satp)
     );

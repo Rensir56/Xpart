@@ -9,6 +9,8 @@ module mmu (
     input wire [63:0] rdata,
     input wire        mmu_stall,
     input wire        mmu_signal,
+    input wire        mmu_change,
+    input wire [1:0]  priv,
     output wire       paddr_valid,
 
     // satp
@@ -50,8 +52,8 @@ module mmu (
     reg  [63:0]  paddr_reg;
 
     assign ren = ren_reg;
-    assign paddr_valid = paddr_valid_reg | (satp == 64'b0);
-    assign paddr = (satp == 64'b0) ? vaddr : paddr_reg;
+    assign paddr_valid = paddr_valid_reg | (satp == 64'b0) | (priv == 2'b11);
+    assign paddr = (satp == 64'b0 | priv == 2'b11) ? vaddr : paddr_reg;
     assign addr = pte_address;
 
     // Initialize MMU state
@@ -82,18 +84,22 @@ module mmu (
     endfunction
 
     reg start_mmu;
-    reg [63:0] last_vaddr;
     reg [63:0] last_satp;
     always @(posedge clk) begin  //TODO
         if (rst == 0) begin
             start_mmu <= 0;
-            last_vaddr <= 64'b0;
             last_satp <= 64'b0;
         end else begin
-            if (((last_vaddr != vaddr && satp != 64'b0) || last_satp != satp) && mmu_signal) begin
+             if ((mmu_change || last_satp != satp) && satp != 64'b0 && mmu_signal) begin
                 start_mmu <= 1;
-            end
-            last_vaddr <= vaddr;
+                paddr_valid_reg <= 0; 
+             end else if (priv == 2'b11) begin
+                start_mmu <= 0;
+                state <= IDLE;
+                ren_reg <= 0;
+                // paddr_valid_reg <= 1;
+                // paddr_reg <= vaddr;
+            end 
             last_satp <= satp;
         end
     end
@@ -113,8 +119,7 @@ module mmu (
             case (state)
                 IDLE: begin
                     if (start_mmu & (satp != 64'b0)) begin
-                        paddr_valid_reg <= 0; 
-                        pte_address <= page_table_base + {55'b0 ,vaddr[38:30] << 3};
+                        pte_address <= page_table_base + {52'b0 ,vaddr[38:30], 3'b0};
                         ren_reg <= 1;
                         state <= TRANSLATE_L1;
                     end
@@ -123,19 +128,18 @@ module mmu (
                 TRANSLATE_L1: begin
                     if (!mmu_stall) begin
                         if (!check_page(pte.flags)) begin
-                            if (!check_permmsions(pte.flags, 0)) begin
                                 state <= IDLE;
                                 ren_reg <= 0;
                                 start_mmu <= 0;
+                            if (!check_permmsions(pte.flags, 0)) begin
+                                // S mode
                             end else begin
                                 paddr_reg <= {8'b0, pte.ppn, 12'b0} + {34'b0, vaddr[29:0]};
                                 paddr_valid_reg <= 1;
-                                state <= IDLE;//ACCESS_MEMORY;
-                                start_mmu <= 0;
                             end
                         end else begin
                             // Calculate L2 page table entry address
-                            pte_address <= {8'b0 , pte.ppn, 12'b0} + {55'b0, vaddr[29:21] << 3};
+                            pte_address <= {8'b0 , pte.ppn, 12'b0} + {52'b0, vaddr[29:21], 3'b0};
                             state <= TRANSLATE_L2;
                         end
                     end
@@ -144,19 +148,18 @@ module mmu (
                 TRANSLATE_L2: begin
                         if (!mmu_stall) begin
                         if (!check_page(pte.flags)) begin
-                            if (!check_permmsions(pte.flags, 0)) begin
                                 state <= IDLE;
                                 ren_reg <= 0;
                                 start_mmu <= 0;
+                            if (!check_permmsions(pte.flags, 0)) begin
+
                             end else begin
                                 paddr_reg <= {8'b0, pte.ppn, 12'b0} + {43'b0, vaddr[20:0]};
                                 paddr_valid_reg <= 1;
-                                state <= IDLE;//ACCESS_MEMORY;
-                                start_mmu <= 0;
                             end
                         end else begin
                             // Calculate L3 page table entry address
-                            pte_address <= {8'b0, pte.ppn, 12'b0} + {55'b0, vaddr[20:12] << 3};
+                            pte_address <= {8'b0, pte.ppn, 12'b0} + {52'b0, vaddr[20:12], 3'b0};
                             state <= TRANSLATE_L3;
                         end
                     end
@@ -165,15 +168,14 @@ module mmu (
                 TRANSLATE_L3: begin
                     if (!mmu_stall) begin
                         // pte <= rdata;
-                        if (!check_permmsions(pte.flags, 0)) begin
                             state <= IDLE;
                             ren_reg <= 0;
                             start_mmu <= 0;
+                        if (!check_permmsions(pte.flags, 0)) begin
+
                         end else begin
                             paddr_reg <= {8'b0, pte.ppn, 12'b0} + {52'b0, vaddr[11:0]};
                             paddr_valid_reg <= 1;
-                            state <= IDLE;//ACCESS_MEMORY;
-                            start_mmu <= 0;
                         end
                     end
                 end
