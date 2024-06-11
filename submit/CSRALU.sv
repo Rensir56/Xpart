@@ -14,7 +14,7 @@ module CSRALU (
   always @(*) begin
     case (CSRalu_op)
         RW: result = rs1_data > 0 ?rs1_data:csr_val_EX;
-        RS: result = csr_val_EX & rs1_data;
+        RS: result = csr_val_EX | rs1_data;
         RC: result = csr_val_EX & _rs1_data;
         default: result = 0;
     endcase
