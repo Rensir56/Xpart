@@ -5,6 +5,7 @@
 #include "defs.h"
 #include "mm.h"
 #include "printk.h"
+#include "../../../include/math.h"
 
 extern void __dummy();
 
@@ -36,7 +37,7 @@ void task_init() {
         struct task_struct* _task = (struct task_struct*)kalloc();
         _task->state = TASK_RUNNING;
         _task->counter = 0;
-        _task->priority = (uint64)rand() % (PRIORITY_MAX - PRIORITY_MIN + 1) + PRIORITY_MIN;
+        _task->priority = int_mod((uint64)i,(PRIORITY_MAX - PRIORITY_MIN + 1)) + PRIORITY_MIN;
         _task->pid = i;
         _task->thread.ra = (uint64)__dummy;
         _task->thread.sp = (uint64)_task + PGSIZE;
@@ -57,7 +58,7 @@ void dummy() {
         if (last_counter == -1 || current->counter != last_counter) {
             last_last_counter = last_counter;
             last_counter = current->counter;
-            auto_inc_local_var = (auto_inc_local_var + 1) % MOD;
+            auto_inc_local_var = int_mod((auto_inc_local_var + 1),MOD);
             printk("[PID = %d] is running. auto_inc_local_var = %d. Thread space begin at %lx\n", current->pid, auto_inc_local_var, current->thread.sp); 
         } else if((last_last_counter == 0 || last_last_counter == -1) && last_counter == 1) { // counter恒为1的情况
             // 这里比较 tricky，不要求理解。
