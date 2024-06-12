@@ -67,6 +67,8 @@ module Axi_lite_Core #(
     wire [63:0] drdata;
     wire        dmmu_stall;    
 
+    wire        satp_change;
+
     Core core (
         .clk        (clk),
         .rstn       (rstn),
@@ -98,6 +100,8 @@ module Axi_lite_Core #(
         .drdata(drdata),
         // .dwdata(dwdata),        
         .dmmu_stall(dmmu_stall),
+
+        .satp_change(satp_change),
 
         .cosim_valid    (cosim_valid),
         .cosim_pc       (cosim_pc),
@@ -202,18 +206,41 @@ module Axi_lite_Core #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
         .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
     ) immu_info();
-    Core2Mem_FSM immu_fsm(
-        .clk(clk),
-        .rstn(rstn),
-        .address_cpu(iaddress),
-        .wen_cpu(1'b0),
-        .ren_cpu(iren & immu_miss_cache),
-        .wdata_cpu(64'b0),
-        .wmask_cpu(8'b0),
-        .rdata_cpu(irdata_from_mem),
-        .mem_stall(immu_stall),
-        .mem_ift(immu_info.Master)
+    TLB #(
+        .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH),
+        .BANK_NUM  (4),
+        .CAPACITY  (256)
+    ) itlb (
+        .clk        (clk),
+        .rstn       (rstn),
+        .addr_cpu   (iaddress),
+        // .wen_cpu    (1'b0),
+        .ren_cpu    (iren & immu_miss_cache),
+        // .wdata_cpu  (64'b0),
+        // .wmask_cpu  (8'b0),
+        .rdata_cpu  (irdata_from_mem),
+        .switch_mode(switch_mode),
+        .data_stall (immu_stall),
+        .satp_change(satp_change),
+        .mem_ift    (immu_info.Master)
     );
+
+
+    // Core2Mem_FSM immu_fsm(
+    //     .clk(clk),
+    //     .rstn(rstn),
+    //     .address_cpu(iaddress),
+    //     .wen_cpu(1'b0),
+    //     .ren_cpu(iren & immu_miss_cache),
+    //     .wdata_cpu(64'b0),
+    //     .wmask_cpu(8'b0),
+    //     .rdata_cpu(irdata_from_mem),
+    //     .mem_stall(immu_stall),
+    //     .mem_ift(immu_info.Master)
+    // );
+
+
 
     // dmmu_fsm
     assign drdata = dmmu_miss_cache ? drdata_from_mem : drdata_from_dcache;
@@ -222,18 +249,37 @@ module Axi_lite_Core #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
         .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
     ) dmmu_info();
-    Core2Mem_FSM dmmu_fsm(
-        .clk(clk),
-        .rstn(rstn),
-        .address_cpu(daddress),
-        .wen_cpu(1'b0),
-        .ren_cpu(dren & dmmu_miss_cache),
-        .wdata_cpu(64'b0),
-        .wmask_cpu(8'b0),
-        .rdata_cpu(drdata_from_mem),
-        .mem_stall(dmmu_stall),
-        .mem_ift(dmmu_info.Master)
+        TLB #(
+        .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH),
+        .BANK_NUM  (4),
+        .CAPACITY  (256)
+    ) dtlb (
+        .clk        (clk),
+        .rstn       (rstn),
+        .addr_cpu   (daddress),
+        // .wen_cpu    (1'b0),
+        .ren_cpu    (dren & dmmu_miss_cache),
+        // .wdata_cpu  (64'b0),
+        // .wmask_cpu  (8'b0),
+        .rdata_cpu  (drdata_from_mem),
+        .switch_mode(switch_mode),
+        .data_stall (dmmu_stall),
+        .satp_change(satp_change),
+        .mem_ift    (dmmu_info.Master)
     );
+    // Core2Mem_FSM dmmu_fsm(
+    //     .clk(clk),
+    //     .rstn(rstn),
+    //     .address_cpu(daddress),
+    //     .wen_cpu(1'b0),
+    //     .ren_cpu(dren & dmmu_miss_cache),
+    //     .wdata_cpu(64'b0),
+    //     .wmask_cpu(8'b0),
+    //     .rdata_cpu(drdata_from_mem),
+    //     .mem_stall(dmmu_stall),
+    //     .mem_ift(dmmu_info.Master)
+    // );
 
     wire        wen_cpu_to_mmio;
     wire        ren_cpu_to_mmio;

@@ -23,9 +23,8 @@ _start:
     csrs sie, a0
   # ------------------
     # set first time interrupt
-    rdtime a0
-    li t0, 10000000
-    add a0, a0, t0
+    # rdtime a0
+    li a0, 100000
     call sbi_set_timer
   # ------------------
     # set sstatus[SIE] = 1
