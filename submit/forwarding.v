@@ -1,5 +1,7 @@
 `define MATHr 7'b0110011
 `define MATHWr 7'b0111011
+`define MATHi 7'b0010011
+`define MATHWi 7'b0011011
 `define JAL 7'b1101111
 `define BRANCH 7'b1100011
 `define LUI 7'b0110111
@@ -24,6 +26,8 @@ module Forwarding(
     
     reg isR;
     reg isWR;
+    reg isI;
+    reg isWI;
     reg isBRANCH;
     reg isJAL;
     reg isAUIPC;
@@ -34,6 +38,8 @@ module Forwarding(
     always @*begin
         isR = (opcode == `MATHr);
         isWR = (opcode == `MATHWr);
+        isI = (opcode == `MATHi);
+        isWI = (opcode == `MATHWi);
         isBRANCH = (opcode == `BRANCH);
         isJAL = (opcode == `JAL);
         isLUI = (opcode == `LUI);
@@ -60,7 +66,7 @@ module Forwarding(
     end
     
     always @(*) begin
-        if (isLW) begin
+        if (isLW || isI || isWI) begin
             rs2_forwarding = 2'b00;
         end 
         else if(EXrs2 == MEMrd && MEMrd != 0 && MEMwe_reg) begin

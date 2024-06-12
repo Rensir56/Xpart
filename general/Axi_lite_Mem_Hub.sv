@@ -21,7 +21,7 @@ module Axi_lite_Mem_Hub #(
 
     AXI_ift #(
         .AXI_ADDR_WIDTH(64),
-        .AXI_DATA_WIDTH(64)
+        .AXI_DATA_WIDTH(128)
     ) dummy_axi (
         .clk(clk),
         .rstn(rstn)

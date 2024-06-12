@@ -146,7 +146,7 @@ module Axi_lite_Core #(
     // immu_fsm
     Mem_ift #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
+        .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
     ) immu_info();
     Core2Mem_FSM immu_fsm(
         .clk(clk),
@@ -192,7 +192,7 @@ module Axi_lite_Core #(
     // dmmu_fsm
     Mem_ift #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
+        .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
     ) dmmu_info();
     Core2Mem_FSM dmmu_fsm(
         .clk(clk),
@@ -275,7 +275,7 @@ module Axi_lite_Core #(
     // immu
         CoreAxi_lite #(
         .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)
     ) immu_axi_lite(
         .master_ift(immu_ift),
         .mem_ift(immu_info.Slave),
@@ -286,7 +286,7 @@ module Axi_lite_Core #(
     // dmmu
         CoreAxi_lite #(
         .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)
     ) dmmu_axi_lite(
         .master_ift(dmmu_ift),
         .mem_ift(dmmu_info.Slave),

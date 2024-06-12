@@ -65,16 +65,16 @@ module PipelineCPU (
 
     // mmu
     AXI_ift #(
-        .AXI_ADDR_WIDTH(64),
-        .AXI_DATA_WIDTH(64)    
+        .AXI_ADDR_WIDTH(ADDR_WIDTH),
+        .AXI_DATA_WIDTH(MEM_DATA_WIDTH)    
     ) immu_axi_ift (
         .clk(clk),
         .rstn(rstn)
     );
 
     AXI_ift #(
-        .AXI_ADDR_WIDTH(64),
-        .AXI_DATA_WIDTH(64)    
+        .AXI_ADDR_WIDTH(ADDR_WIDTH),
+        .AXI_DATA_WIDTH(MEM_DATA_WIDTH)    
     ) dmmu_axi_ift (
         .clk(clk),
         .rstn(rstn)
