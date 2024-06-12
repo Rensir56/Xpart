@@ -32,6 +32,8 @@ module Core (
     input  wire [63:0] drdata,
     input  wire        dmmu_stall,
 
+    output wire        satp_change,
+
     input TimerStruct::TimerPack time_out,
 
     output cosim_valid,
@@ -640,6 +642,16 @@ module Core (
     wire        ipaddr_valid;
     wire        dpaddr_valid;
 
+    reg [63:0] last_satp;
+    always @(posedge clk) begin
+        if (rst) begin
+            last_satp <= 64'b0;
+        end else begin
+            last_satp <= satp;
+        end
+    end
+    assign satp_change = satp != last_satp;
+
 
 
     mmu immu (
@@ -667,7 +679,7 @@ module Core (
         .ren(dren),
         .rdata(drdata),
         .mmu_stall(dmmu_stall),
-        .mmu_signal(EXwe_mem | EXre_mem),
+        .mmu_signal((EXwe_mem | EXre_mem) & ~switch_mode),
         .mmu_change(~EXMEMstall | IDEXflush),
         .priv(priv),
         .paddr_valid(dpaddr_valid),
