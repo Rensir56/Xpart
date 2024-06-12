@@ -1,5 +1,3 @@
-`include "CACHEStruct.vh"
-
 module Cache #(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
@@ -73,7 +71,6 @@ module Cache #(
     wire                           set_rd;
     wire                           finish_rd;
 
-    CACHEStruct::CacheLine set        [1:0][LINE_NUM-1:0];
 
     CacheBank #(
         .ADDR_WIDTH(ADDR_WIDTH),
@@ -90,9 +87,6 @@ module Cache #(
         .ren_cpu  (ren_cpu),
         .rdata_cpu(rdata_cpu),
         .hit_cpu  (hit_cpu),
-
-        .set0(set[0]),
-        .set1(set[1]),
 
         .addr_wb(addr_wb),
         .data_wb(data_wb),
