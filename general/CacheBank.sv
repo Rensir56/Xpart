@@ -1,3 +1,5 @@
+`include "CACHEStruct.vh"
+
 module CacheBank #(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
@@ -15,6 +17,9 @@ module CacheBank #(
     output [  DATA_WIDTH-1:0] rdata_cpu,
     output                    hit_cpu,
 
+    inout CACHEStruct::CacheLine set0 [LINE_NUM-1:0],                   
+    inout CACHEStruct::CacheLine set1 [LINE_NUM-1:0],
+    
     output [         ADDR_WIDTH-1:0] addr_wb,
     output [BANK_NUM*DATA_WIDTH-1:0] data_wb,
     input                            busy_wb,
@@ -51,15 +56,11 @@ module CacheBank #(
     typedef logic [OFFSET_LEN-1:0] offset_t;
     typedef logic [BANK_NUM*DATA_WIDTH-1:0] data_t;
 
-    typedef struct {
-        logic  valid;
-        logic  dirty;
-        logic  lru;
-        tag_t  tag;
-        data_t data;
-    } CacheLine;
 
-    CacheLine set        [1:0][LINE_NUM-1:0];
+    CACHEStruct::CacheLine set        [1:0][LINE_NUM-1:0];
+    assign set[0] = set0;
+    assign set[1] = set1;
+
 
     tag_t     tag_cpu;
     index_t   index_cpu;
@@ -76,7 +77,7 @@ module CacheBank #(
     assign offset_rd = {addr_rd[OFFSET_END:OFFSET_BEGIN+1], 1'b0};
 
     wire      [           1:0] hit;
-    CacheLine                  index_line     [1:0];
+    CACHEStruct::CacheLine                  index_line     [1:0];
     wire      [DATA_WIDTH-1:0] index_line_data[1:0] [BANK_NUM-1:0];
     assign index_line[0] = set[0][index_cpu];
     assign index_line[1] = set[1][index_cpu];
@@ -93,7 +94,7 @@ module CacheBank #(
     assign rdata_cpu = hit[0] ? index_line_data[0][offset_cpu] : index_line_data[1][offset_cpu];
 
     assign set_cache = index_line[0].lru;
-    CacheLine replace_line;
+    CACHEStruct::CacheLine replace_line;
     assign replace_line = index_line[set_cache];
     wire [OFFSET_END:0] pad_zero = {(OFFSET_END + 1) {1'b0}};
     wire                miss_happen = ~hit_cpu & (wen_cpu | ren_cpu);

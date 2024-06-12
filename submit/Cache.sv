@@ -1,3 +1,5 @@
+`include "CACHEStruct.vh"
+
 module Cache #(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
@@ -54,6 +56,7 @@ module Cache #(
     typedef logic [TAG_LEN-1:0] tag_t;
     typedef logic [INDEX_LEN-1:0] index_t;
     typedef logic [OFFSET_LEN-1:0] offset_t;
+    typedef logic [BANK_NUM*DATA_WIDTH-1:0] data_t;
 
     wire [         ADDR_WIDTH-1:0] addr_wb;
     wire [BANK_NUM*DATA_WIDTH-1:0] data_wb;
@@ -70,6 +73,8 @@ module Cache #(
     wire                           set_rd;
     wire                           finish_rd;
 
+    CACHEStruct::CacheLine set        [1:0][LINE_NUM-1:0];
+
     CacheBank #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
@@ -85,6 +90,9 @@ module Cache #(
         .ren_cpu  (ren_cpu),
         .rdata_cpu(rdata_cpu),
         .hit_cpu  (hit_cpu),
+
+        .set0(set[0]),
+        .set1(set[1]),
 
         .addr_wb(addr_wb),
         .data_wb(data_wb),

@@ -1,5 +1,5 @@
 #include "sbi.h"
-unsigned long TIMECLOCK = 10000000;
+unsigned long TIMECLOCK = 100000;
 
 unsigned long get_cycles() {
     unsigned long mtime;
