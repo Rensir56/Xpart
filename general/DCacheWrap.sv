@@ -1,4 +1,4 @@
-module CacheWrap #(
+module DCacheWrap #(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
     parameter integer BANK_NUM   = 4,
@@ -18,7 +18,17 @@ module CacheWrap #(
     input cache_enable,
     input switch_mode,
 
-    Mem_ift.Master mem_ift
+    Mem_ift.Master mem_ift,
+
+    input  [  ADDR_WIDTH-1:0] dmmu_address,
+    input                     dmmu_ren,
+    output [  DATA_WIDTH-1:0] dmmu_rdata,
+    output                    dmmu_miss_cache,
+
+    input  [  ADDR_WIDTH-1:0] immu_address,
+    input                     immu_ren,
+    output [  DATA_WIDTH-1:0] immu_rdata,
+    output                    immu_miss_cache
 );
     reg cache_enable_reg;
 
@@ -30,12 +40,12 @@ module CacheWrap #(
         .DATA_WIDTH(DATA_WIDTH * 2)
     ) cache_ift ();
 
-    Cache #(
+    MMUCache #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .BANK_NUM  (BANK_NUM),
         .CAPACITY  (CAPACITY)
-    ) cache (
+    ) mmucache (
         .clk      (clk),
         .rstn     (rstn),
         .addr_cpu (addr_cpu),
@@ -45,7 +55,17 @@ module CacheWrap #(
         .ren_cpu  (ren_cpu & cache_enable_reg),
         .rdata_cpu(rdata_cache),
         .hit_cpu  (hit_cache),
-        .mem_ift  (cache_ift.Master)
+        .mem_ift  (cache_ift.Master),
+
+        .dmmu_address (dmmu_address),
+        .dmmu_ren     (dmmu_ren),
+        .dmmu_rdata   (dmmu_rdata),
+        .dmmu_miss_cache (dmmu_miss_cache),
+        
+        .immu_address (immu_address),
+        .immu_ren     (immu_ren),
+        .immu_rdata   (immu_rdata),
+        .immu_miss_cache (immu_miss_cache)
     );
 
     Mem_ift #(

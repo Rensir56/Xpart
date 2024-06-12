@@ -19,17 +19,27 @@ module Dcache #(
 
     input MMUStruct::DcacheCtrl dcache_ctrl,
 
-    Mem_ift.Master mem_ift
+    Mem_ift.Master mem_ift,
+
+    input  [  ADDR_WIDTH-1:0] dmmu_address,
+    input                     dmmu_ren,
+    output [  DATA_WIDTH-1:0] dmmu_rdata,
+    output                    dmmu_miss_cache,
+
+    input  [  ADDR_WIDTH-1:0] immu_address,
+    input                     immu_ren,
+    output [  DATA_WIDTH-1:0] immu_rdata,
+    output                    immu_miss_cache
 );
 
 //set
 
-    CacheWrap #(
+    DCacheWrap #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .BANK_NUM  (BANK_NUM),
         .CAPACITY  (CAPACITY)
-    ) cache_wrap (
+    ) dcache_wrap (
         .clk         (clk),
         .rstn        (rstn),
         .addr_cpu    (addr_cpu),
@@ -41,7 +51,17 @@ module Dcache #(
         .stall_cpu   (data_stall),
         .switch_mode (switch_mode),
         .cache_enable(dcache_ctrl.dcache_enable),
-        .mem_ift     (mem_ift)
+        .mem_ift     (mem_ift),
+
+        .dmmu_address (dmmu_address),
+        .dmmu_ren     (dmmu_ren),
+        .dmmu_rdata   (dmmu_rdata),
+        .dmmu_miss_cache (dmmu_miss_cache),
+        
+        .immu_address (immu_address),
+        .immu_ren     (immu_ren),
+        .immu_rdata   (immu_rdata),
+        .immu_miss_cache (immu_miss_cache)
     );
 
 
