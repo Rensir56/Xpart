@@ -14,6 +14,6 @@ unsigned long get_cycles() {
 }
 
 void clock_set_next_event() {
-    unsigned long next_time = get_cycles() + TIMECLOCK;
+    unsigned long next_time = TIMECLOCK;//get_cycles() + TIMECLOCK;
     sbi_set_timer(next_time);
 } 
