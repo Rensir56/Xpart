@@ -14,7 +14,7 @@ module CacheBank #(
     input                     ren_cpu,
     output [  DATA_WIDTH-1:0] rdata_cpu,
     output                    hit_cpu,
-
+    
     output [         ADDR_WIDTH-1:0] addr_wb,
     output [BANK_NUM*DATA_WIDTH-1:0] data_wb,
     input                            busy_wb,
@@ -51,7 +51,8 @@ module CacheBank #(
     typedef logic [OFFSET_LEN-1:0] offset_t;
     typedef logic [BANK_NUM*DATA_WIDTH-1:0] data_t;
 
-    typedef struct {
+
+   typedef struct {
         logic  valid;
         logic  dirty;
         logic  lru;
@@ -60,6 +61,7 @@ module CacheBank #(
     } CacheLine;
 
     CacheLine set        [1:0][LINE_NUM-1:0];
+
 
     tag_t     tag_cpu;
     index_t   index_cpu;

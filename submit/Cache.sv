@@ -54,6 +54,7 @@ module Cache #(
     typedef logic [TAG_LEN-1:0] tag_t;
     typedef logic [INDEX_LEN-1:0] index_t;
     typedef logic [OFFSET_LEN-1:0] offset_t;
+    typedef logic [BANK_NUM*DATA_WIDTH-1:0] data_t;
 
     wire [         ADDR_WIDTH-1:0] addr_wb;
     wire [BANK_NUM*DATA_WIDTH-1:0] data_wb;
@@ -69,6 +70,7 @@ module Cache #(
     wire                           wen_rd;
     wire                           set_rd;
     wire                           finish_rd;
+
 
     CacheBank #(
         .ADDR_WIDTH(ADDR_WIDTH),

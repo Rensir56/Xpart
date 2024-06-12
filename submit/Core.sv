@@ -607,10 +607,10 @@ module Core (
     
     // assign pc = IFpc;
     // assign address = MEMalu_res;
-    assign we_mem = MEMwe_mem;
+    assign we_mem = MEMwe_mem & dpaddr_valid;
     assign wdata_mem = MEMmem_wdata;
     assign wmask_mem = mem_mask;
-    assign re_mem = MEMre_mem;
+    assign re_mem = MEMre_mem & dpaddr_valid;
     // ipaddr_valid
     wire to_delay_request;
     assign to_delay_request = ~(mem_stall | (~dpaddr_valid & (MEMre_mem | MEMwe_mem)));
