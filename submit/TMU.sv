@@ -1,7 +1,6 @@
 module TMU#(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
-    parameter integer BANK_NUM   = 4,
     parameter integer CAPACITY   = 1024
 )(
     input clk,
@@ -10,12 +9,10 @@ module TMU#(
     // IDLE
     input [ADDR_WIDTH - 1: 0]addr_tlb,
     input miss_tlb,
-    input set_tlb,
 
     output reg busy_rd,
     // read
-    input rvalid_mem,
-    input busy_wb,  
+    input rvalid_mem, 
 
     input [DATA_WIDTH * 2 - 1: 0]rdata_mem,
     output reg [ADDR_WIDTH - 1 : 0]raddr_mem,
@@ -23,53 +20,36 @@ module TMU#(
 
     output reg [ADDR_WIDTH - 1 : 0]addr_rd,
     output reg [DATA_WIDTH * 2 - 1 : 0]data_rd,
-    output reg set_rd,
     output reg wen_rd,
 
-    output reg finish_rd,
-    // write
-    // output reg [$clog2(BANK_NUM) - 2 : 0]bank_index,
-    // input [ADDR_WIDTH - 1 : 0]addr_mem,
-    // input [DATA_WIDTH * 2 - 1 : 0]data_mem,
-    // input wvalid_mem,
-    
-
-    // output reg [ADDR_WIDTH - 1 : 0]waddr_mem,
-    // output reg wen_mem,
-    // output reg [DATA_WIDTH * 2 - 1 : 0]wdata_mem,
-    // output reg [DATA_WIDTH * 2 / 8 - 1 : 0]wmask_mem,
-    output reg finish_wb
+    output reg finish_rd
 );
 
 
-reg [31:0]count;
 reg [1:0]state;
 
 reg [ADDR_WIDTH - 1 : 0]addr_tlb_temp;
 reg set_rd_temp;
 
-// reg [ADDR_WIDTH - 1 : 0]addr_mem_temp;
-// reg [DATA_WIDTH * 2 - 1 : 0]data_mem_temp;
-
 
 localparam IDLE = 2'b00;
 localparam READ = 2'b01;
-// localparam WRITE = 2'b10;
 
 always @(posedge clk or negedge rstn) begin
     if(~rstn) begin
-        count <= 0 ;
         state <= IDLE;
     end
     else begin
         case(state)
             IDLE: begin
+                if (wen_rd) begin
+                    finish_rd <= 1;
+                    wen_rd <= 0;
+                end
                 if(miss_tlb) begin
                     addr_tlb_temp <= addr_tlb;
-                    set_rd_temp <= set_tlb;
                     
                     addr_rd <= addr_tlb;
-                    set_rd <= set_tlb;
                     busy_rd <= 1;
 
                     raddr_mem <= addr_tlb;
@@ -81,28 +61,21 @@ always @(posedge clk or negedge rstn) begin
                 else begin
                     finish_rd <= 0;
                     busy_rd <= 0;
-                    finish_wb <= 0;
                 end
             end
             READ: begin
-                if(count != 2 && rvalid_mem == 1) begin 
+                if(rvalid_mem == 1) begin 
                     wen_rd <= 1;
-                    raddr_mem <= addr_tlb_temp + 16;
+                    // raddr_mem <= addr_tlb_temp + 16;
                     addr_rd <= addr_tlb_temp;
-                    addr_tlb_temp <= addr_tlb_temp + 16;
+                    // addr_tlb_temp <= addr_tlb_temp + 16;
                     data_rd <= rdata_mem;
-                    set_rd <= set_tlb;
-                    count <= count + 1;
-                end
-                else if(count == 2 && rvalid_mem == 1)begin
-                    finish_rd <= 1;
-                    count <= 0;
-
-                    wen_rd <= 0;
-                    data_rd <= 0;
+                    // set_rd <= set_tlb;
+                    // coun;t <= count + 1
+                    state <= IDLE;
                     raddr_mem <= 0;
                     ren_mem <= 0;
-                    state <= IDLE;
+                end
 
                     // if(busy_wb) begin
                     //     // state <= WRITE;
@@ -114,7 +87,6 @@ always @(posedge clk or negedge rstn) begin
                     // end
                 end
                     
-            end
             // WRITE: begin
             //     if(count != 2) begin
             //         wdata_mem <= data_mem;

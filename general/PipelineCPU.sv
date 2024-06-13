@@ -51,13 +51,14 @@ module PipelineCPU (
 );
     parameter ADDR_WIDTH = 64;
     parameter DATA_WIDTH = 64;
-    parameter MEM_DATA_WIDTH = 128;
+    parameter MEM_DATA_WIDTH = 64;
+    parameter MEM_WDATA_WIDTH = 128;
 
     import MMIOStruct::MMIOPack;
 
     AXI_ift #(
         .AXI_ADDR_WIDTH(ADDR_WIDTH),
-        .AXI_DATA_WIDTH(MEM_DATA_WIDTH)
+        .AXI_DATA_WIDTH(MEM_WDATA_WIDTH)
     ) if_axi_ift (
         .clk (clk),
         .rstn(rstn)
@@ -74,7 +75,7 @@ module PipelineCPU (
 
     AXI_ift #(
         .AXI_ADDR_WIDTH(ADDR_WIDTH),
-        .AXI_DATA_WIDTH(MEM_DATA_WIDTH)    
+        .AXI_DATA_WIDTH(MEM_WDATA_WIDTH)    
     ) dmmu_axi_ift (
         .clk(clk),
         .rstn(rstn)

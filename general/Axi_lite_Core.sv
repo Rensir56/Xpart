@@ -62,10 +62,12 @@ module Axi_lite_Core #(
     wire        iren;
     wire [63:0] irdata;
     wire        immu_stall;
+    wire [63:0] ivaddr;
     wire [63:0] daddress;
     wire        dren;
     wire [63:0] drdata;
     wire        dmmu_stall;    
+    wire [63:0] dvaddr;
 
     wire        satp_change;
 
@@ -93,6 +95,7 @@ module Axi_lite_Core #(
         .irdata(irdata),
         // .iwdata(iwdata),
         .immu_stall(immu_stall),
+        .ivaddr(ivaddr),
 
         .daddress(daddress),
         .dren(dren),
@@ -100,6 +103,7 @@ module Axi_lite_Core #(
         .drdata(drdata),
         // .dwdata(dwdata),        
         .dmmu_stall(dmmu_stall),
+        .dvaddr(dvaddr),
 
         .satp_change(satp_change),
 
@@ -204,7 +208,7 @@ module Axi_lite_Core #(
 
     Mem_ift #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
     ) immu_info();
     TLB #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
@@ -216,6 +220,7 @@ module Axi_lite_Core #(
         .rstn       (rstn),
         .addr_cpu   (iaddress),
         // .wen_cpu    (1'b0),
+        .vaddr      (ivaddr),
         .ren_cpu    (iren & immu_miss_cache),
         // .wdata_cpu  (64'b0),
         // .wmask_cpu  (8'b0),
@@ -247,9 +252,9 @@ module Axi_lite_Core #(
 
     Mem_ift #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)  
+        .DATA_WIDTH(C_M_AXI_DATA_WIDTH)  
     ) dmmu_info();
-        TLB #(
+    TLB #(
         .ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
         .DATA_WIDTH(C_M_AXI_DATA_WIDTH),
         .BANK_NUM  (4),
@@ -259,6 +264,7 @@ module Axi_lite_Core #(
         .rstn       (rstn),
         .addr_cpu   (daddress),
         // .wen_cpu    (1'b0),
+        .vaddr      (dvaddr),
         .ren_cpu    (dren & dmmu_miss_cache),
         // .wdata_cpu  (64'b0),
         // .wmask_cpu  (8'b0),
@@ -349,7 +355,7 @@ module Axi_lite_Core #(
     // immu
         CoreAxi_lite #(
         .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .C_M_AXI_DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
     ) immu_axi_lite(
         .master_ift(immu_ift),
         .mem_ift(immu_info.Slave),
@@ -360,7 +366,7 @@ module Axi_lite_Core #(
     // dmmu
         CoreAxi_lite #(
         .C_M_AXI_ADDR_WIDTH(C_M_AXI_ADDR_WIDTH),
-        .C_M_AXI_DATA_WIDTH(C_M_AXI_MEM_DATA_WIDTH)
+        .C_M_AXI_DATA_WIDTH(C_M_AXI_DATA_WIDTH)
     ) dmmu_axi_lite(
         .master_ift(dmmu_ift),
         .mem_ift(dmmu_info.Slave),

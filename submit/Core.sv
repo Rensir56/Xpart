@@ -26,11 +26,13 @@ module Core (
     output wire        iren,
     input  wire [63:0] irdata,
     input  wire        immu_stall,
+    output wire [63:0] ivaddr,
 
     output wire [63:0] daddress,
     output wire        dren,
     input  wire [63:0] drdata,
     input  wire        dmmu_stall,
+    output wire [63:0] dvaddr,
 
     output wire        satp_change,
 
@@ -652,7 +654,8 @@ module Core (
     end
     assign satp_change = satp != last_satp;
 
-
+    assign ivaddr = IFpc;
+    assign dvaddr = MEMalu_res;
 
     mmu immu (
         .clk(clk),

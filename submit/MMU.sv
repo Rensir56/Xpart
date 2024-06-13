@@ -111,10 +111,6 @@ module mmu (
         state <= IDLE;
         paddr_valid_reg <= 0;
         ren_reg <= 0;
-        // end else if (flush)begin  TODO
-        //     state <= IDLE;
-        //     start_mmu <= 0;
-        //     ren_reg <= 0;
         end else begin
             case (state)
                 IDLE: begin
