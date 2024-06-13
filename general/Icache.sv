@@ -20,12 +20,12 @@ module Icache #(
 );
 
     wire [DATA_WIDTH-1:0] inst_set;
-    CacheWrap #(
+    ICacheWrap #(
         .ADDR_WIDTH(ADDR_WIDTH),
         .DATA_WIDTH(DATA_WIDTH),
         .BANK_NUM  (BANK_NUM),
         .CAPACITY  (CAPACITY)
-    ) cache_wrap (
+    ) icache_wrap (
         .clk         (clk),
         .rstn        (rstn),
         .addr_cpu    (pc),

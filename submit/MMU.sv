@@ -51,7 +51,7 @@ module mmu (
     reg   paddr_valid_reg;
     reg  [63:0]  paddr_reg;
 
-    assign ren = ren_reg;
+    assign ren = ren_reg & (priv != 2'b11);
     assign paddr_valid = paddr_valid_reg | (satp == 64'b0) | (priv == 2'b11);
     assign paddr = (satp == 64'b0 | priv == 2'b11) ? vaddr : paddr_reg;
     assign addr = pte_address;
@@ -85,7 +85,7 @@ module mmu (
 
     reg start_mmu;
     reg [63:0] last_satp;
-    always @(posedge clk) begin  //TODO
+    always @(posedge clk) begin  
         if (rst == 0) begin
             start_mmu <= 0;
             last_satp <= 64'b0;
@@ -111,14 +111,10 @@ module mmu (
         state <= IDLE;
         paddr_valid_reg <= 0;
         ren_reg <= 0;
-        // end else if (flush)begin  TODO
-        //     state <= IDLE;
-        //     start_mmu <= 0;
-        //     ren_reg <= 0;
         end else begin
             case (state)
                 IDLE: begin
-                    if (start_mmu & (satp != 64'b0)) begin
+                    if (start_mmu & (satp != 64'b0) & (priv != 2'b11)) begin
                         pte_address <= page_table_base + {52'b0 ,vaddr[38:30], 3'b0};
                         ren_reg <= 1;
                         state <= TRANSLATE_L1;

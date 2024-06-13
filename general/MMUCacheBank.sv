@@ -1,4 +1,4 @@
-module CacheBank #(
+module MMUCacheBank #(
     parameter integer ADDR_WIDTH = 64,
     parameter integer DATA_WIDTH = 64,
     parameter integer BANK_NUM   = 4,
@@ -28,7 +28,17 @@ module CacheBank #(
     input  [DATA_WIDTH*2-1:0] data_rd,
     input                     wen_rd,
     input                     set_rd,
-    input                     finish_rd
+    input                     finish_rd,
+
+    input  [  ADDR_WIDTH-1:0] dmmu_address,
+    input                     dmmu_ren,
+    output [  DATA_WIDTH-1:0] dmmu_rdata,
+    output                    dmmu_miss_cache,
+
+    input  [  ADDR_WIDTH-1:0] immu_address,
+    input                     immu_ren,
+    output [  DATA_WIDTH-1:0] immu_rdata,
+    output                    immu_miss_cache  
 );
 
     localparam BYTE_NUM = DATA_WIDTH / 8;
@@ -77,22 +87,63 @@ module CacheBank #(
     assign index_rd  = addr_rd[INDEX_END:INDEX_BEGIN];
     assign offset_rd = {addr_rd[OFFSET_END:OFFSET_BEGIN+1], 1'b0};
 
+    tag_t     tag_immu;
+    index_t   index_immu;
+    offset_t  offset_immu;
+    assign tag_immu    = immu_address[TAG_END:TAG_BEGIN];
+    assign index_immu  = immu_address[INDEX_END:INDEX_BEGIN];
+    assign offset_immu = immu_address[OFFSET_END:OFFSET_BEGIN];
+
+    tag_t     tag_dmmu;
+    index_t   index_dmmu;
+    offset_t  offset_dmmu;
+    assign tag_dmmu    = dmmu_address[TAG_END:TAG_BEGIN];
+    assign index_dmmu  = dmmu_address[INDEX_END:INDEX_BEGIN];
+    assign offset_dmmu = dmmu_address[OFFSET_END:OFFSET_BEGIN];
+    
+
     wire      [           1:0] hit;
+    wire      [           1:0] immu_hit;
+    wire      [           1:0] dmmu_hit;
+
     CacheLine                  index_line     [1:0];
+    CacheLine                  immu_index_line     [1:0];
+    CacheLine                  dmmu_index_line     [1:0];
     wire      [DATA_WIDTH-1:0] index_line_data[1:0] [BANK_NUM-1:0];
+    wire      [DATA_WIDTH-1:0] immu_index_line_data[1:0] [BANK_NUM-1:0];
+    wire      [DATA_WIDTH-1:0] dmmu_index_line_data[1:0] [BANK_NUM-1:0];
     assign index_line[0] = set[0][index_cpu];
     assign index_line[1] = set[1][index_cpu];
+    assign immu_index_line[0] = set[0][index_immu];
+    assign immu_index_line[1] = set[1][index_immu];
+    assign dmmu_index_line[0] = set[0][index_dmmu];
+    assign dmmu_index_line[0] = set[1][index_dmmu];
+
     genvar v;
     generate
         for (v = 0; v < BANK_NUM; v = v + 1) begin : unpack_index_line
             assign index_line_data[0][v] = index_line[0].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];
             assign index_line_data[1][v] = index_line[1].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];
+            assign immu_index_line_data[0][v] = immu_index_line[0].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];
+            assign immu_index_line_data[1][v] = immu_index_line[1].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];            
+            assign dmmu_index_line_data[0][v] = dmmu_index_line[0].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];
+            assign dmmu_index_line_data[1][v] = dmmu_index_line[1].data[DATA_WIDTH*v+DATA_WIDTH-1:DATA_WIDTH*v];    
         end
     endgenerate
     assign hit[0] = (index_line[0].tag == tag_cpu) & index_line[0].valid;
     assign hit[1] = (index_line[1].tag == tag_cpu) & index_line[1].valid;
     assign hit_cpu = |hit;
     assign rdata_cpu = hit[0] ? index_line_data[0][offset_cpu] : index_line_data[1][offset_cpu];
+
+    assign immu_hit[0] = (immu_index_line[0].tag == tag_immu) & immu_index_line[0].valid;
+    assign immu_hit[1] = (immu_index_line[1].tag == tag_immu) & immu_index_line[1].valid;
+    assign immu_rdata = immu_hit[0] ? immu_index_line_data[0][offset_immu] : immu_hit[1] ? immu_index_line_data[1][offset_immu] : {DATA_WIDTH{1'b0}};
+    assign immu_miss_cache = ~(|immu_hit) & immu_ren;
+
+    assign dmmu_hit[0] = (dmmu_index_line[0].tag == tag_dmmu) & dmmu_index_line[0].valid;
+    assign dmmu_hit[1] = (dmmu_index_line[1].tag == tag_dmmu) & dmmu_index_line[1].valid;
+    assign dmmu_rdata = dmmu_hit[0] ? dmmu_index_line_data[0][offset_dmmu] : dmmu_hit[1] ? dmmu_index_line_data[1][offset_dmmu] : {DATA_WIDTH{1'b0}};
+    assign dmmu_miss_cache = ~(|dmmu_hit) & dmmu_ren;
 
     assign set_cache = index_line[0].lru;
     CacheLine replace_line;
